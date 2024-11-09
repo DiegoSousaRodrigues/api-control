@@ -1,23 +1,31 @@
 package repository
 
 import (
-	"fmt"
-	"github.com/autorei/api-control/internal/database"
-	database2 "github.com/autorei/api-control/internal/migrations"
+	"github.com/autorei/api-control/internal/domain"
 	"log"
 )
 
-func List() (*[]database.Client) {
-	entity := &[]database.Client{}
-	db := database2.InitDB()
+var ClientRepository IClientRepository = &clientRepository{}
 
-	if err := db.Find(entity); err.Error != nil {
+type IClientRepository interface {
+	List() (entity *[]domain.Client, err error)
+}
+
+type clientRepository struct{
+	db domain.BaseRepository
+}
+
+func (c *clientRepository) List() (entity *[]domain.Client, err error) {
+	db := c.db.PSQL()
+
+	if err := db.Find(&entity); err.Error != nil {
 		log.Fatalf("Erro ao buscar clientes: %v", err)
+		return nil, err.Error
 	}
 
-	for _, value := range *entity{
-		fmt.Println(value)
+	if entity == nil {
+		return nil, err
 	}
 
-	return entity
+	return entity, nil
 }

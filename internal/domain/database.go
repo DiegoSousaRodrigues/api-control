@@ -1,4 +1,4 @@
-package database
+package domain
 
 import (
 	"gorm.io/driver/postgres"
@@ -7,12 +7,18 @@ import (
 	"sync"
 )
 
+type BaseRepository struct {}
+
 var (
 	db   *gorm.DB
 	once sync.Once
 )
 
-func InitDB() *gorm.DB {
+func (b BaseRepository) PSQL() *gorm.DB {
+	return b.OpenConn()
+}
+
+func (b BaseRepository) OpenConn() *gorm.DB {
 	once.Do(func() {
 		dsn := "user=postgres dbname=postgres host=localhost port=5432 sslmode=disable"
 

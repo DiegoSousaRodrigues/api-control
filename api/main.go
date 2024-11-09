@@ -1,11 +1,8 @@
 package main
 
-import (
-	database "github.com/autorei/api-control/internal/migrations"
-	"github.com/autorei/api-control/internal/repository"
-)
+import routes "github.com/autorei/api-control/internal"
 
 func main() {
-	database.InitialMigration()
-	repository.List()
+	//database.InitialMigration.InitialMigration()
+	routes.Server.Run("3001")
 }
