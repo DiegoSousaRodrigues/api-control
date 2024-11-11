@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/autorei/api-control/internal/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -15,6 +16,10 @@ type IClientApi interface {
 type clientApi struct{}
 
 func (c *clientApi)List(ctx *gin.Context) {
-	clients := service.ClientService.List()
+	clients, err := service.ClientService.List()
+	if err != nil {
+		fmt.Println("ERROR ON LIST CLIENT API: ", err)
+		ctx.AbortWithStatusJSON(500, gin.H{"erro": err.Error()})
+	}
 	ctx.JSON(http.StatusOK, clients)
 }

@@ -21,7 +21,8 @@ func (r *routes) Run(port string) {
 func (r *routes) setupRouter() *gin.Engine {
 	router := gin.Default()
 
-	router.GET("/api/clients", api.ClientApi.List)
+	groupClient := router.Group("client")
+	groupClient.GET("/list", api.ClientApi.List)
 
 	return router
 }

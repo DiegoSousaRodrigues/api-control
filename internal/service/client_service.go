@@ -1,25 +1,29 @@
 package service
 
 import (
-	"github.com/autorei/api-control/internal/domain"
+	"github.com/autorei/api-control/internal/dto"
 	"github.com/autorei/api-control/internal/repository"
 )
 
 var ClientService IClientService = &clientService{}
 
 type IClientService interface {
-	List() *[]domain.Client
+	List() (*[]dto.ClientDTO, error)
 }
 
-type clientService struct {}
+type clientService struct{}
 
-func (c *clientService) List() *[]domain.Client {
-	list, err := repository.ClientRepository.List()
+func (c *clientService) List() (*[]dto.ClientDTO, error) {
+	listEntity, err := repository.ClientRepository.List()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	//TODO fazer o parse para um DTO e fazer o return
+	var listDTO []dto.ClientDTO
 
-	return list
+	for _, value := range *listEntity {
+		listDTO = append(listDTO, dto.ParseToDTO(value))
+	}
+
+	return &listDTO, nil
 }
