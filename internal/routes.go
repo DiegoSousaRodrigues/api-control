@@ -23,6 +23,8 @@ func (r *routes) setupRouter() *gin.Engine {
 
 	groupClient := router.Group("client")
 	groupClient.GET("/list", api.ClientApi.List)
+	groupClient.GET("/:id", api.ClientApi.FindByID)
+	groupClient.POST("/", api.ClientApi.Add)
 
 	return router
 }

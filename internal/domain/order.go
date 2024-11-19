@@ -8,6 +8,7 @@ type Order struct {
 	LastUpdated time.Time `json:"lastUpdated" gorm:"not null;default:current_timestamp"`
 	ClientId    int64     `json:"clientId"    gorm:"not null;index"`
 	Active      bool      `json:"active"      gorm:"not null;default:true"`
+	Observation string    `json:"observation" gorm:""`
 
 	Client    Client     `json:"client"       gorm:"foreignKey:ClientId;references:ID"`
 	OrderSkus []OrderSku `json:"orderSkus"    gorm:"foreignKey:OrderID"` // Relacionamento has-many com OrderSku
