@@ -12,10 +12,22 @@ type IClientRepository interface {
 	Add(entity domain.Client) (err error)
 	FindByID(id string) (entity *domain.Client, err error)
 	Update(id int64, entity domain.Client) (err error)
+	ChangeStatus(id int64, status bool) (err error)
 }
 
 type clientRepository struct {
 	db domain.BaseRepository
+}
+
+func (c *clientRepository) ChangeStatus(id int64, status bool) (err error) {
+	db := c.db.PSQL()
+
+	sql := "update client set active = ? where id = ?"
+	if err := db.Exec(sql, status, id); err.Error != nil {
+		return err.Error
+	}
+
+	return nil
 }
 
 func (c *clientRepository) Update(id int64, entity domain.Client) (err error) {
@@ -52,7 +64,7 @@ func (c *clientRepository) Add(client domain.Client) (err error) {
 func (c *clientRepository) List() (entity *[]domain.Client, err error) {
 	db := c.db.PSQL()
 
-	if err := db.Find(&entity); err.Error != nil {
+	if err := db.Order("id").Find(&entity); err.Error != nil {
 		log.Fatalf("Erro ao buscar clientes: %v", err)
 		return nil, err.Error
 	}

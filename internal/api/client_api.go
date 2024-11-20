@@ -15,9 +15,33 @@ type IClientApi interface {
 	FindByID(ctx *gin.Context)
 	Add(ctx *gin.Context)
 	Update(ctx *gin.Context)
+	ChangeStatus(ctx *gin.Context)
 }
 
 type clientApi struct{}
+
+func (c *clientApi) ChangeStatus(ctx *gin.Context) {
+	clientID := ctx.Param("id")
+	if clientID == "" {
+		ctx.AbortWithStatusJSON(500, gin.H{"erro": "Necessario ID do cliente"})
+		return
+	}
+
+	status := ctx.Param("status")
+	if status == "" {
+		ctx.AbortWithStatusJSON(500, gin.H{"erro": "Necessario ID do cliente"})
+		return
+	}
+
+	err := service.ClientService.ChangeStatus(clientID, status)
+	if err != nil{
+		fmt.Println("ERROR ON SERVICE CLIENT API: ", err.Error())
+		ctx.AbortWithStatusJSON(500, gin.H{"erro": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{})
+}
 
 func (c *clientApi) Update(ctx *gin.Context) {
 	dtoClient := &dto.ClientDTO{}
@@ -37,7 +61,7 @@ func (c *clientApi) Update(ctx *gin.Context) {
 
 	err = service.ClientService.Update(clientID, *dtoClient)
 	if err != nil {
-		fmt.Println("ERROR ON BIND CLIENT API: ", err.Error())
+		fmt.Println("ERROR ON SERVICE CLIENT API: ", err.Error())
 		ctx.AbortWithStatusJSON(500, gin.H{"erro": err.Error()})
 		return
 	}

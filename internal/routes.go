@@ -26,6 +26,7 @@ func (r *routes) setupRouter() *gin.Engine {
 	groupClient.GET("/:id", api.ClientApi.FindByID)
 	groupClient.POST("/", api.ClientApi.Add)
 	groupClient.PUT("/:id", api.ClientApi.Update)
+	groupClient.POST("/status/:id/:status", api.ClientApi.ChangeStatus)
 
 	return router
 }

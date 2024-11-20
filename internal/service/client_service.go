@@ -13,9 +13,30 @@ type IClientService interface {
 	Add(dto.ClientRequest) (err error)
 	FindByID(id string) (*dto.ClientDTO, error)
 	Update(id string, clientDto dto.ClientDTO) (err error)
+	ChangeStatus(id string, status string) (err error)
 }
 
 type clientService struct{}
+
+func (c *clientService) ChangeStatus(id string, status string) (err error) {
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return err
+	}
+
+	statusBool, err := strconv.ParseBool(status)
+	if err != nil {
+		return err
+	}
+
+	err = repository.ClientRepository.ChangeStatus(int64(idInt), statusBool)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
 
 func (c *clientService) Update(id string, clientDto dto.ClientDTO) (err error) {
 	entity, err := dto.ParseDtoToEntity(clientDto)
