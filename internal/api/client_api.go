@@ -14,9 +14,36 @@ type IClientApi interface {
 	List(ctx *gin.Context)
 	FindByID(ctx *gin.Context)
 	Add(ctx *gin.Context)
+	Update(ctx *gin.Context)
 }
 
 type clientApi struct{}
+
+func (c *clientApi) Update(ctx *gin.Context) {
+	dtoClient := &dto.ClientDTO{}
+
+	clientID := ctx.Param("id")
+	if clientID == "" {
+		ctx.AbortWithStatusJSON(500, gin.H{"erro": "Necessario ID do cliente"})
+		return
+	}
+
+	err := ctx.ShouldBind(&dtoClient)
+	if err != nil {
+		fmt.Println("ERROR ON BIND CLIENT API: ", err.Error())
+		ctx.AbortWithStatusJSON(500, gin.H{"erro": err.Error()})
+		return
+	}
+
+	err = service.ClientService.Update(clientID, *dtoClient)
+	if err != nil {
+		fmt.Println("ERROR ON BIND CLIENT API: ", err.Error())
+		ctx.AbortWithStatusJSON(500, gin.H{"erro": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{})
+}
 
 func (c *clientApi) FindByID(ctx *gin.Context) {
 	clientID := ctx.Param("id")

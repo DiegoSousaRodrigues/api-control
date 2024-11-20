@@ -7,7 +7,7 @@ import (
 
 type (
 	ClientDTO struct {
-		ID               int64  `json:"id"`
+		ID               int64   `json:"id"`
 		Name             string  `json:"name"`
 		Document         string  `json:"document"`
 		Phone            string  `json:"phone"`
@@ -26,7 +26,7 @@ type (
 
 	ClientRequest struct {
 		ClientDTO
-		Position         string     `json:"position"`
+		Position string `json:"position"`
 	}
 )
 
@@ -50,11 +50,12 @@ func ParseToDTO(entity domain.Client) ClientDTO {
 	}
 }
 
-func ParseToEntity(dto ClientRequest) (*domain.Client, error) {
+func ParseRequestToEntity(dto ClientRequest) (*domain.Client, error) {
 	position, err := strconv.Atoi(dto.Position)
 	if err != nil {
 		return nil, err
 	}
+
 	return &domain.Client{
 		Name:             dto.Name,
 		Document:         dto.Document,
@@ -71,4 +72,23 @@ func ParseToEntity(dto ClientRequest) (*domain.Client, error) {
 		AddressReference: dto.AddressReference,
 		Position:         position,
 	}, nil
-}  
+}
+
+func ParseDtoToEntity(dto ClientDTO) (*domain.Client, error) {
+	return &domain.Client{
+		Name:             dto.Name,
+		Document:         dto.Document,
+		Phone:            dto.Phone,
+		Telephone:        dto.Telephone,
+		Birthdate:        dto.Birthdate,
+		Active:           true,
+		Street:           dto.Street,
+		Quarter:          dto.Quarter,
+		Number:           dto.Number,
+		Complement:       dto.Complement,
+		Zipcode:          dto.Zipcode,
+		AddressType:      dto.AddressType,
+		AddressReference: dto.AddressReference,
+		Position:         dto.Position,
+	}, nil
+}
