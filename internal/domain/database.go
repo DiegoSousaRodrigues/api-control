@@ -1,12 +1,13 @@
 package domain
 
 import (
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"log"
 	"os"
 	"sync"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type BaseRepository struct {}
@@ -31,7 +32,7 @@ func (b BaseRepository) OpenConn() *gorm.DB {
 	)
 
 	once.Do(func() {
-		dsn := "user=postgres dbname=postgres host=localhost port=5432 sslmode=disable"
+		dsn := "postgres://neondb_owner:SOC3jPx8QpvA@ep-divine-mode-a46y0prw-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 		var err error
 		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{

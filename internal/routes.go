@@ -1,9 +1,10 @@
 package routes
 
 import (
+	"log"
+
 	"github.com/autorei/api-control/internal/api"
 	"github.com/gin-gonic/gin"
-	"log"
 )
 
 var Server = &routes{}
@@ -27,6 +28,11 @@ func (r *routes) setupRouter() *gin.Engine {
 	groupClient.POST("/", api.ClientApi.Add)
 	groupClient.PUT("/:id", api.ClientApi.Update)
 	groupClient.POST("/status/:id/:status", api.ClientApi.ChangeStatus)
+
+	groupSku := router.Group("sku")
+	groupSku.GET("/list", api.SkuApi.List)
+	
+	groupSku.POST("/", api.SkuApi.Add)
 
 	return router
 }
