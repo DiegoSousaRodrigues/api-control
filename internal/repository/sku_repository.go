@@ -3,7 +3,7 @@ package repository
 import (
 	"log"
 
-	"github.com/autorei/api-control/internal/domain"
+	"github.com/api-control/internal/domain"
 )
 
 var SkuRepository ISkuRepository = &skuRepository{}

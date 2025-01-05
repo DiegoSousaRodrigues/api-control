@@ -3,7 +3,7 @@ package routes
 import (
 	"log"
 
-	"github.com/autorei/api-control/internal/api"
+	"github.com/api-control/internal/api"
 	"github.com/gin-gonic/gin"
 )
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/autorei/api-control/internal/dto"
-	"github.com/autorei/api-control/internal/service"
+	"github.com/api-control/internal/dto"
+	"github.com/api-control/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

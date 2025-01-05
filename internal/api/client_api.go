@@ -2,8 +2,8 @@ package api
 
 import (
 	"fmt"
-	"github.com/autorei/api-control/internal/dto"
-	"github.com/autorei/api-control/internal/service"
+	"github.com/api-control/internal/dto"
+	"github.com/api-control/internal/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

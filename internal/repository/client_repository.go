@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/autorei/api-control/internal/domain"
+	"github.com/api-control/internal/domain"
 	"log"
 )
 

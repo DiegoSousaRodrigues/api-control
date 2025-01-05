@@ -2,7 +2,7 @@ package database
 
 import (
 	"fmt"
-	"github.com/autorei/api-control/internal/domain"
+	"github.com/api-control/internal/domain"
 )
 
 var InitialMigration IInitialMigration = &initialMigration{}

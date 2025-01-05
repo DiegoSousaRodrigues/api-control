@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/autorei/api-control/internal/dto"
-	"github.com/autorei/api-control/internal/repository"
+	"github.com/api-control/internal/dto"
+	"github.com/api-control/internal/repository"
 )
 
 var SkuService ISkuService = &skuService{}

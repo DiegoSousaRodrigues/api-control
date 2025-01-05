@@ -1,8 +1,9 @@
 package dto
 
 import (
-	"github.com/autorei/api-control/internal/domain"
 	"strconv"
+
+	"github.com/api-control/internal/domain"
 )
 
 type (

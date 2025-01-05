@@ -1,8 +1,8 @@
 package dto
 
 import (
-	"github.com/autorei/api-control/internal/domain"
-	"github.com/autorei/api-control/internal/utils"
+	"github.com/api-control/internal/domain"
+	"github.com/api-control/internal/utils"
 )
 
 type (

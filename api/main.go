@@ -1,8 +1,8 @@
 package main
 
 import (
-	routes "github.com/autorei/api-control/internal"
-	//database "github.com/autorei/api-control/internal/migrations"
+	routes "github.com/api-control/internal"
+	//database "github.com/api-control/internal/migrations"
 )
 
 func main() {
