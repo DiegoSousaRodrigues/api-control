@@ -11,6 +11,7 @@ var SkuRepository ISkuRepository = &skuRepository{}
 type ISkuRepository interface {
 	List() (entity *[]domain.Sku, err error)
 	Add(entity domain.Sku) (err error)
+	ChangeStatus(id int64, status bool) (err error)
 }
 
 type skuRepository struct {
@@ -36,6 +37,17 @@ func (c *skuRepository) Add(client domain.Sku) (err error) {
 	db := c.db.PSQL()
 
 	if err := db.Create(&client); err.Error != nil {
+		return err.Error
+	}
+
+	return nil
+}
+
+func (c *skuRepository) ChangeStatus(id int64, status bool) (err error) {
+	db := c.db.PSQL()
+
+	sql := "update sku set active = ? where id = ?"
+	if err := db.Exec(sql, status, id); err.Error != nil {
 		return err.Error
 	}
 

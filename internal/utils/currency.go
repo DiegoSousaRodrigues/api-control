@@ -11,6 +11,7 @@ func CurrencyToFloat64(currency string) (float64, error) {
 	cleaned := strings.ReplaceAll(currency, "R$", "")
 	cleaned = strings.TrimSpace(cleaned)
 	// Substitui a vírgula por ponto
+	cleaned = strings.ReplaceAll(cleaned, ".", "")
 	cleaned = strings.ReplaceAll(cleaned, ",", ".")
 	// Converte para float64
 	value, err := strconv.ParseFloat(cleaned, 64)

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strconv"
+
 	"github.com/api-control/internal/dto"
 	"github.com/api-control/internal/repository"
 )
@@ -10,6 +12,7 @@ var SkuService ISkuService = &skuService{}
 type ISkuService interface {
 	List() (*[]dto.SkuDTO, error)
 	Add(clientDTO dto.SkuDTO) (err error)
+	ChangeStatus(id string, status string) error
 }
 
 type skuService struct{}
@@ -36,6 +39,25 @@ func (c *skuService) Add(clientDTO dto.SkuDTO) (err error) {
 	}
 
 	err = repository.SkuRepository.Add(*entity)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *skuService) ChangeStatus(id string, status string) error {
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return err
+	}
+
+	statusBool, err := strconv.ParseBool(status)
+	if err != nil {
+		return err
+	}
+
+	err = repository.SkuRepository.ChangeStatus(int64(idInt), statusBool)
 	if err != nil {
 		return err
 	}
