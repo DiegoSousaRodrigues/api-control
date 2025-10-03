@@ -31,7 +31,7 @@ type (
 	}
 )
 
-func ParseToDTO(entity domain.Client) ClientDTO {
+func ParseClientToDTO(entity domain.Client) ClientDTO {
 	return ClientDTO{
 		ID:               entity.ID,
 		Name:             entity.Name,
@@ -51,7 +51,7 @@ func ParseToDTO(entity domain.Client) ClientDTO {
 	}
 }
 
-func ParseRequestToEntity(dto ClientRequest) (*domain.Client, error) {
+func ParseClientRequestToEntity(dto ClientRequest) (*domain.Client, error) {
 	position, err := strconv.Atoi(dto.Position)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func ParseRequestToEntity(dto ClientRequest) (*domain.Client, error) {
 	}, nil
 }
 
-func ParseDtoToEntity(dto ClientDTO) (*domain.Client, error) {
+func ParseClientDtoToEntity(dto ClientDTO) (*domain.Client, error) {
 	return &domain.Client{
 		Name:             dto.Name,
 		Document:         dto.Document,

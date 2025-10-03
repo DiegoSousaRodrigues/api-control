@@ -1,9 +1,10 @@
 package service
 
 import (
+	"strconv"
+
 	"github.com/api-control/internal/dto"
 	"github.com/api-control/internal/repository"
-	"strconv"
 )
 
 var ClientService IClientService = &clientService{}
@@ -39,7 +40,7 @@ func (c *clientService) ChangeStatus(id string, status string) (err error) {
 }
 
 func (c *clientService) Update(id string, clientDto dto.ClientDTO) (err error) {
-	entity, err := dto.ParseDtoToEntity(clientDto)
+	entity, err := dto.ParseClientDtoToEntity(clientDto)
 	if err != nil {
 		return err
 	}
@@ -63,12 +64,12 @@ func (c *clientService) FindByID(id string) (*dto.ClientDTO, error) {
 		return nil, err
 	}
 
-	dtoClient := dto.ParseToDTO(*entity)
+	dtoClient := dto.ParseClientToDTO(*entity)
 	return &dtoClient, nil
 }
 
 func (c *clientService) Add(clientDTO dto.ClientRequest) (err error) {
-	entity, err := dto.ParseRequestToEntity(clientDTO)
+	entity, err := dto.ParseClientRequestToEntity(clientDTO)
 	if err != nil {
 		return err
 	}
@@ -90,7 +91,7 @@ func (c *clientService) List() (*[]dto.ClientDTO, error) {
 	var listDTO []dto.ClientDTO
 
 	for _, value := range *listEntity {
-		listDTO = append(listDTO, dto.ParseToDTO(value))
+		listDTO = append(listDTO, dto.ParseClientToDTO(value))
 	}
 
 	return &listDTO, nil

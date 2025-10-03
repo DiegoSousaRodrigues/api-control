@@ -13,6 +13,8 @@ type ISkuService interface {
 	List() (*[]dto.SkuDTO, error)
 	Add(clientDTO dto.SkuDTO) (err error)
 	ChangeStatus(id string, status string) error
+	FindByID(id string) (*dto.SkuDTO, error)
+	Update(id string, skuDto dto.SkuDTO) (err error)
 }
 
 type skuService struct{}
@@ -60,6 +62,35 @@ func (c *skuService) ChangeStatus(id string, status string) error {
 	err = repository.SkuRepository.ChangeStatus(int64(idInt), statusBool)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c *skuService) FindByID(id string) (*dto.SkuDTO, error) {
+	entity, err := repository.SkuRepository.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	dtoSku := dto.ParseSkuToDTO(*entity)
+	return &dtoSku, nil
+}
+
+func (c *skuService) Update(id string, skuDto dto.SkuDTO) (err error) {
+	entity, err := dto.ParseSkuRequestToEntity(skuDto)
+	if err != nil {
+		return err
+	}
+
+	intId, err := strconv.Atoi(id)
+	if err != nil {
+		return err
+	}
+
+	err = repository.SkuRepository.Update(int64(intId), *entity)
+	if err != nil {
+		return nil
 	}
 
 	return nil

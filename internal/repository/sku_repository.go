@@ -12,6 +12,8 @@ type ISkuRepository interface {
 	List() (entity *[]domain.Sku, err error)
 	Add(entity domain.Sku) (err error)
 	ChangeStatus(id int64, status bool) (err error)
+	FindByID(id string) (entity *domain.Sku, err error)
+	Update(id int64, entity domain.Sku) (err error)
 }
 
 type skuRepository struct {
@@ -48,6 +50,27 @@ func (c *skuRepository) ChangeStatus(id int64, status bool) (err error) {
 
 	sql := "update sku set active = ? where id = ?"
 	if err := db.Exec(sql, status, id); err.Error != nil {
+		return err.Error
+	}
+
+	return nil
+}
+
+func (c *skuRepository) FindByID(id string) (entity *domain.Sku, err error) {
+	db := c.db.PSQL()
+
+	if err := db.Where("id = ?", id).First(&entity); err.Error != nil {
+		return nil, err.Error
+	}
+
+	return entity, nil
+}
+
+func (c *skuRepository) Update(id int64, entity domain.Sku) (err error) {
+	db := c.db.PSQL()
+	entity.ID = id
+
+	if err := db.Save(&entity); err.Error != nil {
 		return err.Error
 	}
 

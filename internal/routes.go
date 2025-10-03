@@ -25,7 +25,7 @@ func (r *routes) setupRouter() *gin.Engine {
 	groupClient := router.Group("client")
 	{
 		groupClient.GET("/list", api.ClientApi.List)
-		groupClient.GET("/:id", api.ClientApi.FindByID)
+		groupClient.GET("/:id", api.ClientApi.FindByID)	
 		groupClient.POST("/", api.ClientApi.Add)
 		groupClient.PUT("/:id", api.ClientApi.Update)
 		groupClient.POST("/status/:id/:status", api.ClientApi.ChangeStatus)
@@ -35,7 +35,9 @@ func (r *routes) setupRouter() *gin.Engine {
 	groupSku := router.Group("sku")
 	{
 		groupSku.GET("/list", api.SkuApi.List)
+		groupSku.GET("/:id", api.SkuApi.FindByID)	
 		groupSku.POST("/", api.SkuApi.Add)
+		groupSku.PUT("/:id", api.SkuApi.Update)
 		groupSku.POST("/status/:id/:status", api.SkuApi.ChangeStatus)
 	}
 	

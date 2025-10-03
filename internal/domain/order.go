@@ -7,12 +7,11 @@ type Order struct {
 	DateCreated time.Time `json:"dateCreated" gorm:"not null;default:current_timestamp"`
 	LastUpdated time.Time `json:"lastUpdated" gorm:"not null;default:current_timestamp"`
 	ClientId    int64     `json:"clientId"    gorm:"not null;index"`
-	Active      bool      `json:"active"      gorm:"not null;default:true"`
+	DeletedAt   time.Time `json:"deletedAt"   gorm:"default:current_timestamp"`
 	Observation string    `json:"observation" gorm:""`
 
 	Client    Client     `json:"client"       gorm:"foreignKey:ClientId;references:ID"`
 	OrderSkus []OrderSku `json:"orderSkus"    gorm:"foreignKey:OrderID"` // Relacionamento has-many com OrderSku
-
 }
 
 // TableName retorna o nome da tabela para o GORM

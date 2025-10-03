@@ -32,7 +32,7 @@ func (b BaseRepository) OpenConn() *gorm.DB {
 	)
 
 	once.Do(func() {
-		dsn := "postgres://neondb_owner:SOC3jPx8QpvA@ep-divine-mode-a46y0prw-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require"
+		dsn := os.Getenv("DB_CONNECTION_STRING")
 
 		var err error
 		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
