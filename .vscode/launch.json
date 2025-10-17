@@ -1,0 +1,15 @@
+// Arquivo: .vscode/launch.json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch API (Fix .env)",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug", // Onde o binário está: a pasta `api/` dentro do workspace
+      "program": "${workspaceFolder}/api/main.go",
+      // Onde o processo deve EXECUTAR e procurar arquivos como .env
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

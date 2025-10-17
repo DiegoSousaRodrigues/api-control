@@ -41,6 +41,15 @@ func (r *routes) setupRouter() *gin.Engine {
 		groupSku.POST("/status/:id/:status", api.SkuApi.ChangeStatus)
 	}
 	
+	groupOrder := router.Group("order")
+	{
+		groupOrder.GET("/list", api.OrderApi.List)
+		groupOrder.GET("/:id", api.OrderApi.FindByID)	
+		groupOrder.POST("/", api.OrderApi.Add)
+		groupOrder.PUT("/:id", api.OrderApi.Update)
+		groupOrder.POST("/status/:id/:status", api.OrderApi.ChangeStatus)
+	}
+	
 
 	return router
 }
