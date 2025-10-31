@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/api-control/internal/domain"
@@ -8,15 +9,15 @@ import (
 
 type (
 	OrderSkuDTO struct {
-		SkuID    int64 `json:"skuId"`
-		Quantity int   `json:"quantity"`
+		ProductId string `json:"productId"`
+		Quantity  string `json:"quantity"`
 	}
 
 	OrderRequestDTO struct {
-		ClientID    int64         `json:"clientId"`
+		ClientID    string         `json:"clientId"`
 		Observation string        `json:"observation"`
-		OrderSkus   []OrderSkuDTO `json:"orderSkus"`
-	}
+		Products    []OrderSkuDTO `json:"products"`
+	} 
 
 	OrderResponseDTO struct {
 		ID          int64      `json:"id"`
@@ -52,8 +53,44 @@ func ParseOrderToDTO(entity domain.Order) OrderResponseDTO {
 }
 
 func ParseOrderRequestToEntity(dto OrderRequestDTO) (*domain.Order, error) {
+	clientID, err := strconv.Atoi(dto.ClientID)
+	if err != nil {
+		return nil, err
+	}
+
+	orderSkus, err := ParseOrderSkuRequestToEntity(dto.Products)
+	if err != nil {
+		return nil, err
+	}
+
 	return &domain.Order{
-		ClientId:    dto.ClientID,
+		ClientId:    int64(clientID),
 		Observation: dto.Observation,
+		OrderSkus: *orderSkus,
 	}, nil
+}
+
+func ParseOrderSkuRequestToEntity (dto []OrderSkuDTO) (*[]domain.OrderSku, error) {
+	var list []domain.OrderSku
+
+	for _, v := range dto {
+		productID, err := strconv.ParseInt(v.ProductId, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		quantity, err := strconv.Atoi(v.Quantity)
+		if err != nil {
+			return nil, err
+		}
+
+		orderSku := domain.OrderSku{
+			SkuID:    productID,
+			Quantity: quantity,
+		}
+		list = append(list, orderSku)
+	}
+
+	return &list, nil
+	
 }

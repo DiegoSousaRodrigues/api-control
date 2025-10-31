@@ -40,7 +40,6 @@ func (c *orderService) Add(orderDTO dto.OrderRequestDTO) (error) {
 		return err
 	}
 
-	// Assuming Add in repository returns the created entity with ID
 	err = repository.OrderRepository.Add(*entity)
 	if err != nil {
 		return err
