@@ -1,10 +1,12 @@
 package dto
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/api-control/internal/domain"
+	"github.com/api-control/internal/repository"
 )
 
 type (
@@ -14,19 +16,19 @@ type (
 	}
 
 	OrderRequestDTO struct {
-		ClientID    string         `json:"clientId"`
+		ClientID    string        `json:"clientId"`
 		Observation string        `json:"observation"`
 		Products    []OrderSkuDTO `json:"products"`
-	} 
+	}
 
 	OrderResponseDTO struct {
-		ID          int64      `json:"id"`
-		DateCreated time.Time  `json:"dateCreated"`
-		LastUpdated time.Time  `json:"lastUpdated"`
-		Observation string     `json:"observation"`
-		Client      ClientDTO  `json:"client"`
-		OrderSkus   []SkuDTO   `json:"orderSkus"`
-		Total       string     `json:"total"`
+		ID          int64     `json:"id"`
+		DateCreated time.Time `json:"dateCreated"`
+		LastUpdated time.Time `json:"lastUpdated"`
+		Observation string    `json:"observation"`
+		Client      ClientDTO `json:"client"`
+		OrderSkus   []SkuDTO  `json:"orderSkus"`
+		Total       string    `json:"total"`
 	}
 )
 
@@ -63,14 +65,24 @@ func ParseOrderRequestToEntity(dto OrderRequestDTO) (*domain.Order, error) {
 		return nil, err
 	}
 
+	for i, v := range *orderSkus {
+		sku, err := repository.SkuRepository.FindByID(fmt.Sprint(v.SkuID))
+		if err != nil {
+			return nil, err
+		}
+
+		(*orderSkus)[i].Price = float64(v.Quantity) * sku.Price
+		(*orderSkus)[i].Name = sku.Name
+	}
+
 	return &domain.Order{
 		ClientId:    int64(clientID),
 		Observation: dto.Observation,
-		OrderSkus: *orderSkus,
+		OrderSkus:   *orderSkus,
 	}, nil
 }
 
-func ParseOrderSkuRequestToEntity (dto []OrderSkuDTO) (*[]domain.OrderSku, error) {
+func ParseOrderSkuRequestToEntity(dto []OrderSkuDTO) (*[]domain.OrderSku, error) {
 	var list []domain.OrderSku
 
 	for _, v := range dto {
@@ -92,5 +104,5 @@ func ParseOrderSkuRequestToEntity (dto []OrderSkuDTO) (*[]domain.OrderSku, error
 	}
 
 	return &list, nil
-	
+
 }

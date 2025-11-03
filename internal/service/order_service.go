@@ -11,7 +11,7 @@ var OrderService IOrderService = &orderService{}
 
 type IOrderService interface {
 	List() (*[]dto.OrderResponseDTO, error)
-	Add(orderDTO dto.OrderRequestDTO) (error)
+	Add(orderDTO dto.OrderRequestDTO) error
 	ChangeStatus(id string, status string) error
 	FindByID(id string) (*dto.OrderResponseDTO, error)
 	Update(id string, orderDTO dto.OrderRequestDTO) (err error)
@@ -34,7 +34,7 @@ func (s *orderService) List() (*[]dto.OrderResponseDTO, error) {
 	return &listDTO, nil
 }
 
-func (c *orderService) Add(orderDTO dto.OrderRequestDTO) (error) {
+func (c *orderService) Add(orderDTO dto.OrderRequestDTO) error {
 	entity, err := dto.ParseOrderRequestToEntity(orderDTO)
 	if err != nil {
 		return err
