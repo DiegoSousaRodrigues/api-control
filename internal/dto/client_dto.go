@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/api-control/internal/domain"
@@ -23,6 +24,7 @@ type (
 		AddressType      string  `json:"addressType"`
 		AddressReference *string `json:"addressReference"`
 		Position         int     `json:"position"`
+		FullAddress      *string `json:"fullAddress"`
 	}
 
 	ClientRequest struct {
@@ -32,6 +34,7 @@ type (
 )
 
 func ParseClientToDTO(entity domain.Client) ClientDTO {
+	fullAddress := fmt.Sprintf("%s - %s, %s", entity.Quarter, entity.Street, entity.Number)
 	return ClientDTO{
 		ID:               entity.ID,
 		Name:             entity.Name,
@@ -48,6 +51,7 @@ func ParseClientToDTO(entity domain.Client) ClientDTO {
 		AddressType:      entity.AddressType,
 		AddressReference: entity.AddressReference,
 		Position:         entity.Position,
+		FullAddress:      &fullAddress,
 	}
 }
 

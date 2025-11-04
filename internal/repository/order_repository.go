@@ -23,7 +23,7 @@ type orderRepository struct {
 func (c *orderRepository) List() (entity *[]domain.Order, err error) {
 	db := c.db.PSQL()
 
-	if err := db.Order("id").Find(&entity); err.Error != nil {
+	if err := db.Order("id").Preload("Client").Preload("OrderSkus").Find(&entity); err.Error != nil {
 		log.Fatalf("Erro ao buscar produtos: %v", err)
 		return nil, err.Error
 	}
