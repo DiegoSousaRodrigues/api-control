@@ -7,6 +7,7 @@ import (
 
 	"github.com/api-control/internal/domain"
 	"github.com/api-control/internal/repository"
+	"github.com/api-control/internal/utils"
 )
 
 type (
@@ -28,7 +29,7 @@ type (
 		Observation string    `json:"observation"`
 		Client      ClientDTO `json:"client"`
 		OrderSkus   []SkuDTO  `json:"orderSkus"`
-		Total       string    `json:"total"`
+		PriceTotal  string    `json:"priceTotal"`
 	}
 )
 
@@ -38,7 +39,7 @@ func ParseOrderToDTO(entity domain.Order) OrderResponseDTO {
 
 	for _, orderSku := range entity.OrderSkus {
 		skusDTO = append(skusDTO, ParseSkuToDTO(orderSku.Sku))
-		total += orderSku.Price * float64(orderSku.Quantity)
+		total += orderSku.Price
 	}
 
 	clientDTO := ParseClientToDTO(entity.Client)
@@ -50,7 +51,7 @@ func ParseOrderToDTO(entity domain.Order) OrderResponseDTO {
 		Observation: entity.Observation,
 		Client:      clientDTO,
 		OrderSkus:   skusDTO,
-		// Total:       utils.Float64ToCurrency(total), // You might need a currency utility function
+		PriceTotal:  utils.Float64ToCurrency(total),
 	}
 }
 
