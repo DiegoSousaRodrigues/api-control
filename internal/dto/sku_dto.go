@@ -1,16 +1,19 @@
 package dto
 
 import (
+	"mime/multipart"
+
 	"github.com/api-control/internal/domain"
 	"github.com/api-control/internal/utils"
 )
 
 type (
 	SkuDTO struct {
-		ID          int64   	`json:"id"`
-		Name        string      `json:"name"     gorm:"not null"`
-		Price       string      `json:"price"    gorm:"not null"`
-		Active      bool        `json:"active"   gorm:"not null;default:true"`
+		ID     int64                 `form:"id" json:"id"`
+		Name   string                `form:"name" json:"name" binding:"required"`
+		Price  string                `form:"price" json:"price" binding:"required"`
+		File   *multipart.FileHeader `form:"file"`
+		Active bool                  `form:"active" json:"active" gorm:"not null;default:true"`
 	}
 )
 
@@ -18,10 +21,10 @@ func ParseSkuToDTO(entity domain.Sku) SkuDTO {
 	price := utils.Float64ToCurrency(entity.Price)
 
 	return SkuDTO{
-		ID:               entity.ID,
-		Name:             entity.Name,
-		Price: 			  price,
-		Active: 		  entity.Active,
+		ID:     entity.ID,
+		Name:   entity.Name,
+		Price:  price,
+		Active: entity.Active,
 	}
 }
 
@@ -33,8 +36,8 @@ func ParseSkuRequestToEntity(dto SkuDTO) (*domain.Sku, error) {
 	}
 
 	return &domain.Sku{
-		Name:         dto.Name,
-		Price: 		  price,
-		Active: 	  dto.Active,
+		Name:   dto.Name,
+		Price:  price,
+		Active: dto.Active,
 	}, nil
 }

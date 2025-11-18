@@ -1,6 +1,9 @@
 package service
 
 import (
+	"fmt"
+	"io"
+	"os"
 	"strconv"
 
 	"github.com/api-control/internal/dto"
@@ -34,8 +37,45 @@ func (s *skuService) List() (*[]dto.SkuDTO, error) {
 	return &listDTO, nil
 }
 
-func (c *skuService) Add(clientDTO dto.SkuDTO) (err error) {
-	entity, err := dto.ParseSkuRequestToEntity(clientDTO)
+func (c *skuService) Add(skuDto dto.SkuDTO) (err error) {
+	file, err := skuDto.File.Open()
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// --- INICIO DO DEBUG: SALVAR LOCALMENTE ---
+	// Cria um arquivo local com prefixo "debug_"
+	out, err := os.Create("debug_" + skuDto.File.Filename)
+	if err != nil {
+		fmt.Println("Erro ao criar arquivo de debug:", err)
+	} else {
+		// Copia o conteúdo do upload para esse arquivo local
+		_, err = io.Copy(out, file)
+		out.Close() // Fecha o arquivo local
+		if err != nil {
+			fmt.Println("Erro ao salvar arquivo de debug:", err)
+		} else {
+			fmt.Println("DEBUG: Arquivo salvo localmente como debug_" + skuDto.File.Filename)
+		}
+	}
+
+	// CRUCIAL: Reseta o ponteiro do arquivo para o início (byte 0)
+	// Se não fizer isso, o UploadToVercelBlob vai ler a partir do final (vazio)
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		return fmt.Errorf("erro ao resetar ponteiro do arquivo: %w", err)
+	}
+	// --- FIM DO DEBUG ---
+
+	blobResp, err := UploadToVercelBlob(file, skuDto.File.Filename, skuDto.File.Header.Get("Content-Type"))
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Imagem salva em:", blobResp.Url)
+
+	entity, err := dto.ParseSkuRequestToEntity(skuDto)
 	if err != nil {
 		return err
 	}

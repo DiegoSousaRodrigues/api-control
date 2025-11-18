@@ -65,7 +65,7 @@ func (c *skuApi) ChangeStatus(ctx *gin.Context) {
 	}
 
 	err := service.SkuService.ChangeStatus(skuID, status)
-	if err != nil{
+	if err != nil {
 		fmt.Println("ERROR ON SERVICE SKU API: ", err.Error())
 		ctx.AbortWithStatusJSON(500, gin.H{"erro": err.Error()})
 		return
