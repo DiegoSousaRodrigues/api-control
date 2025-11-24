@@ -44,6 +44,12 @@ func (im *initialMigration) InitialMigration() {
 		return
 	}
 
+	err = db.AutoMigrate(&domain.User{})
+	if err != nil {
+		fmt.Printf("Erro ao executar a migração User: %v\n", err)
+		return
+	}
+
 	err = db.AutoMigrate(&domain.Client{})
 	if err != nil {
 		fmt.Printf("Erro ao executar a migração: %v\n", err)
