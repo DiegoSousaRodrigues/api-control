@@ -28,7 +28,7 @@ func ParseSkuToDTO(entity domain.Sku) SkuDTO {
 	}
 }
 
-func ParseSkuRequestToEntity(dto SkuDTO) (*domain.Sku, error) {
+func ParseSkuRequestToEntity(dto SkuDTO, imageUrl *string) (*domain.Sku, error) {
 	price, err := utils.CurrencyToFloat64(dto.Price)
 
 	if err != nil {
@@ -36,8 +36,9 @@ func ParseSkuRequestToEntity(dto SkuDTO) (*domain.Sku, error) {
 	}
 
 	return &domain.Sku{
-		Name:   dto.Name,
-		Price:  price,
-		Active: dto.Active,
+		Name:     dto.Name,
+		Price:    price,
+		Active:   dto.Active,
+		ImageUrl: imageUrl,
 	}, nil
 }

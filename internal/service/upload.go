@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 )
@@ -57,4 +58,25 @@ func UploadToVercelBlob(file io.Reader, filename string, contentType string) (*B
 	}
 
 	return &blobResp, nil
+}
+
+func LoadUploadToVercelBlob(file *multipart.FileHeader) (*string, error) {
+	var imageUrl *string
+
+	if file != nil {
+		_file, err := file.Open()
+		if err != nil {
+			return nil, err
+		}
+		defer _file.Close()
+
+		resp, err := UploadToVercelBlob(_file, file.Filename, file.Header.Get("Content-Type"))
+		if err != nil {
+			return nil, err
+		}
+
+		imageUrl = &resp.Url
+	}
+
+	return imageUrl, nil
 }
