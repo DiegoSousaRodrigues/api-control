@@ -18,7 +18,7 @@ type IAuthService interface {
 type authService struct{}
 
 func (a *authService) Login(loginReq dto.LoginRequest) (*dto.LoginResponse, error) {
-	user, err := repository.UserRepository.FindByEmail(loginReq.Email)
+	user, err := repository.UserRepository.FindByLogin(loginReq.Login)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (a *authService) Register(registerReq dto.RegisterRequest) error {
 
 	user := domain.User{
 		Name:     registerReq.Name,
-		Email:    registerReq.Email,
+		Login:    registerReq.Email,
 		Password: string(hashedPassword),
 		Active:   true,
 	}
