@@ -1,0 +1,62 @@
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] POST   /auth/login               --> github.com/api-control/internal/api.IAuthApi.Login-fm (4 handlers)
+[GIN-debug] GET    /client/list              --> github.com/api-control/internal/api.IClientApi.List-fm (5 handlers)
+[GIN-debug] GET    /client/:id               --> github.com/api-control/internal/api.IClientApi.FindByID-fm (5 handlers)
+[GIN-debug] POST   /client/                  --> github.com/api-control/internal/api.IClientApi.Add-fm (5 handlers)
+[GIN-debug] PUT    /client/:id               --> github.com/api-control/internal/api.IClientApi.Update-fm (5 handlers)
+[GIN-debug] POST   /client/status/:id/:status --> github.com/api-control/internal/api.IClientApi.ChangeStatus-fm (5 handlers)
+[GIN-debug] GET    /sku/list                 --> github.com/api-control/internal/api.ISkuApi.List-fm (5 handlers)
+[GIN-debug] GET    /sku/:id                  --> github.com/api-control/internal/api.ISkuApi.FindByID-fm (5 handlers)
+[GIN-debug] POST   /sku/                     --> github.com/api-control/internal/api.ISkuApi.Add-fm (5 handlers)
+[GIN-debug] PUT    /sku/:id                  --> github.com/api-control/internal/api.ISkuApi.Update-fm (5 handlers)
+[GIN-debug] POST   /sku/status/:id/:status   --> github.com/api-control/internal/api.ISkuApi.ChangeStatus-fm (5 handlers)
+[GIN-debug] GET    /order/list               --> github.com/api-control/internal/api.IOrderApi.List-fm (5 handlers)
+[GIN-debug] GET    /order/:id                --> github.com/api-control/internal/api.IOrderApi.FindByID-fm (5 handlers)
+[GIN-debug] POST   /order/                   --> github.com/api-control/internal/api.IOrderApi.Add-fm (5 handlers)
+[GIN-debug] PUT    /order/:id                --> github.com/api-control/internal/api.IOrderApi.Update-fm (5 handlers)
+[GIN-debug] POST   /order/status/:id/:status --> github.com/api-control/internal/api.IOrderApi.ChangeStatus-fm (5 handlers)
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :3001
+[GIN] 2026/06/18 - 22:23:56 | 401 |            0s |             ::1 | GET      "/client/list"
+
+2026/06/18 22:24:49 [32mC:/Users/diego/OneDrive/Área de Trabalho/Projetos/Meus projetos/api-control/internal/repository/client_repository.go:67
+[0m[33m[420.906ms] [34;1m[rows:2][0m SELECT * FROM "client" ORDER BY id
+[GIN] 2026/06/18 - 22:24:49 | 200 |    4.3756822s |             ::1 | GET      "/client/list"
+
+2026/06/18 22:24:49 [32mC:/Users/diego/OneDrive/Área de Trabalho/Projetos/Meus projetos/api-control/internal/repository/sku_repository.go:26
+[0m[33m[252.757ms] [34;1m[rows:17][0m SELECT * FROM "sku" ORDER BY id
+[GIN] 2026/06/18 - 22:24:49 | 200 |    254.4538ms |             ::1 | GET      "/sku/list"
+
+2026/06/18 22:24:49 [32mC:/Users/diego/OneDrive/Área de Trabalho/Projetos/Meus projetos/api-control/internal/repository/order_repository.go:26
+[0m[33m[257.728ms] [34;1m[rows:1][0m SELECT * FROM "client" WHERE "client"."id" = 1
+
+2026/06/18 22:24:50 [32mC:/Users/diego/OneDrive/Área de Trabalho/Projetos/Meus projetos/api-control/internal/repository/order_repository.go:26
+[0m[33m[257.456ms] [34;1m[rows:8][0m SELECT * FROM "order_sku" WHERE "order_sku"."order_id" IN (16,17,18,19,20,21,22,23)
+
+2026/06/18 22:24:50 [32mC:/Users/diego/OneDrive/Área de Trabalho/Projetos/Meus projetos/api-control/internal/repository/order_repository.go:26
+[0m[33m[766.968ms] [34;1m[rows:8][0m SELECT * FROM "order" ORDER BY id
+[GIN] 2026/06/18 - 22:24:50 | 200 |    767.5185ms |             ::1 | GET      "/order/list"
+
+2026/06/18 22:25:26 [32mC:/Users/diego/OneDrive/Área de Trabalho/Projetos/Meus projetos/api-control/internal/repository/client_repository.go:67
+[0m[33m[283.216ms] [34;1m[rows:2][0m SELECT * FROM "client" ORDER BY id
+[GIN] 2026/06/18 - 22:25:26 | 200 |    283.7187ms |             ::1 | GET      "/client/list"
+
+2026/06/18 22:25:26 [32mC:/Users/diego/OneDrive/Área de Trabalho/Projetos/Meus projetos/api-control/internal/repository/sku_repository.go:26
+[0m[33m[117.187ms] [34;1m[rows:17][0m SELECT * FROM "sku" ORDER BY id
+[GIN] 2026/06/18 - 22:25:26 | 200 |    118.5067ms |             ::1 | GET      "/sku/list"
+
+2026/06/18 22:25:27 [32mC:/Users/diego/OneDrive/Área de Trabalho/Projetos/Meus projetos/api-control/internal/repository/order_repository.go:26
+[0m[33m[149.750ms] [34;1m[rows:1][0m SELECT * FROM "client" WHERE "client"."id" = 1
+
+2026/06/18 22:25:27 [32mC:/Users/diego/OneDrive/Área de Trabalho/Projetos/Meus projetos/api-control/internal/repository/order_repository.go:26
+[0m[33m[179.983ms] [34;1m[rows:8][0m SELECT * FROM "order_sku" WHERE "order_sku"."order_id" IN (16,17,18,19,20,21,22,23)
+
+2026/06/18 22:25:27 [32mC:/Users/diego/OneDrive/Área de Trabalho/Projetos/Meus projetos/api-control/internal/repository/order_repository.go:26
+[0m[33m[451.737ms] [34;1m[rows:8][0m SELECT * FROM "order" ORDER BY id
+[GIN] 2026/06/18 - 22:25:27 | 200 |    452.3427ms |             ::1 | GET      "/order/list"

@@ -3,17 +3,20 @@ package utils
 import (
 	"errors"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
-
 type Claims struct {
 	UserID int64 `json:"user_id"`
 	jwt.RegisteredClaims
+}
+
+func getJWTSecret() []byte {
+	return []byte(os.Getenv("JWT_SECRET"))
 }
 
 func GenerateJWT(userID int64) (string, error) {
@@ -27,7 +30,7 @@ func GenerateJWT(userID int64) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString(getJWTSecret())
 	if err != nil {
 		return "", err
 	}
@@ -38,7 +41,7 @@ func GenerateJWT(userID int64) (string, error) {
 func ValidateJWT(tokenString string) (*Claims, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
+		return getJWTSecret(), nil
 	})
 	if err != nil {
 		return nil, err
@@ -55,6 +58,10 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		if tokenString == "" {
 			c.AbortWithStatusJSON(401, gin.H{"error": "Authorization header is required"})
 			return
+		}
+		tokenString = strings.TrimSpace(tokenString)
+		if strings.HasPrefix(strings.ToLower(tokenString), "bearer ") {
+			tokenString = strings.TrimSpace(tokenString[7:])
 		}
 
 		claims, err := ValidateJWT(tokenString)

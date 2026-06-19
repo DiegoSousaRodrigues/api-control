@@ -22,6 +22,7 @@ func (r *routes) Run(port string) {
 
 func (r *routes) setupRouter() *gin.Engine {
 	router := gin.Default()
+	router.Use(utils.CORSMiddleware())
 
 	groupAuth := router.Group("auth")
 	{
