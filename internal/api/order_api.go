@@ -15,7 +15,6 @@ type IOrderApi interface {
 	List(ctx *gin.Context)
 	FindByID(ctx *gin.Context)
 	Add(ctx *gin.Context)
-	ChangeStatus(ctx *gin.Context)
 	Update(ctx *gin.Context)
 }
 
@@ -49,29 +48,6 @@ func (c *orderApi) Add(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{})
-}
-
-func (c *orderApi) ChangeStatus(ctx *gin.Context) {
-	orderID := ctx.Param("id")
-	if orderID == "" {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"erro": "ID do pedido é obrigatório"})
-		return
-	}
-
-	status := ctx.Param("status")
-	if status == "" {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"erro": "Status é obrigatório"})
-		return
-	}
-
-	err := service.OrderService.ChangeStatus(orderID, status)
-	if err != nil {
-		fmt.Println("ERROR ON CHANGE STATUS ORDER API: ", err.Error())
-		ctx.AbortWithStatusJSON(500, gin.H{"erro": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{})
 }
 
 func (c *orderApi) FindByID(ctx *gin.Context) {

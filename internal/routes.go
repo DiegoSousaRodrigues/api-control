@@ -54,7 +54,6 @@ func (r *routes) setupRouter() *gin.Engine {
 		groupOrder.GET("/:id", api.OrderApi.FindByID)
 		groupOrder.POST("/", api.OrderApi.Add)
 		groupOrder.PUT("/:id", api.OrderApi.Update)
-		groupOrder.POST("/status/:id/:status", api.OrderApi.ChangeStatus)
 	}
 
 	return router

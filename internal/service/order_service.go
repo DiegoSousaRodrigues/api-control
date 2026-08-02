@@ -12,7 +12,6 @@ var OrderService IOrderService = &orderService{}
 type IOrderService interface {
 	List() (*[]dto.OrderResponseDTO, error)
 	Add(orderDTO dto.OrderRequestDTO) error
-	ChangeStatus(id string, status string) error
 	FindByID(id string) (*dto.OrderResponseDTO, error)
 	Update(id string, orderDTO dto.OrderRequestDTO) (err error)
 }
@@ -44,25 +43,6 @@ func (c *orderService) Add(orderDTO dto.OrderRequestDTO) error {
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (c *orderService) ChangeStatus(id string, status string) error {
-	idInt, err := strconv.Atoi(id)
-	if err != nil {
-		return err
-	}
-
-	statusBool, err := strconv.ParseBool(status)
-	if err != nil {
-		return err
-	}
-
-	err = repository.OrderRepository.ChangeStatus(int64(idInt), statusBool)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
