@@ -52,7 +52,7 @@ func (c *clientService) Update(id string, clientDto dto.ClientDTO) (err error) {
 
 	err = repository.ClientRepository.Update(int64(intId), *entity)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil

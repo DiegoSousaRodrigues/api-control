@@ -1,9 +1,10 @@
 package repository
 
 import (
-	"log"
+	"time"
 
 	"github.com/api-control/internal/domain"
+	"gorm.io/gorm"
 )
 
 var SkuRepository ISkuRepository = &skuRepository{}
@@ -24,7 +25,6 @@ func (c *skuRepository) List() (entity *[]domain.Sku, err error) {
 	db := c.db.PSQL()
 
 	if err := db.Order("id").Find(&entity); err.Error != nil {
-		log.Fatalf("Erro ao buscar produtos: %v", err)
 		return nil, err.Error
 	}
 
@@ -48,9 +48,12 @@ func (c *skuRepository) Add(client domain.Sku) (err error) {
 func (c *skuRepository) ChangeStatus(id int64, status bool) (err error) {
 	db := c.db.PSQL()
 
-	sql := "update sku set active = ? where id = ?"
-	if err := db.Exec(sql, status, id); err.Error != nil {
-		return err.Error
+	result := db.Model(&domain.Sku{}).Where("id = ?", id).Update("active", status)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil
@@ -68,11 +71,28 @@ func (c *skuRepository) FindByID(id string) (entity *domain.Sku, err error) {
 
 func (c *skuRepository) Update(id int64, entity domain.Sku) (err error) {
 	db := c.db.PSQL()
-	entity.ID = id
 
-	if err := db.Save(&entity); err.Error != nil {
-		return err.Error
+	result := db.Model(&domain.Sku{}).Where("id = ?", id).Updates(skuUpdateFields(entity))
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil
+}
+
+func skuUpdateFields(entity domain.Sku) map[string]interface{} {
+	fields := map[string]interface{}{
+		"last_updated": time.Now(),
+		"name":         entity.Name,
+		"price":        entity.Price,
+	}
+
+	if entity.ImageUrl != nil {
+		fields["image_url"] = entity.ImageUrl
+	}
+
+	return fields
 }

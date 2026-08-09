@@ -9,11 +9,12 @@ import (
 
 type (
 	SkuDTO struct {
-		ID     int64                 `form:"id" json:"id"`
-		Name   string                `form:"name" json:"name" binding:"required"`
-		Price  string                `form:"price" json:"price" binding:"required"`
-		File   *multipart.FileHeader `form:"file"`
-		Active bool                  `form:"active" json:"active" gorm:"not null;default:true"`
+		ID       int64                 `form:"id" json:"id"`
+		Name     string                `form:"name" json:"name" binding:"required"`
+		Price    string                `form:"price" json:"price" binding:"required"`
+		File     *multipart.FileHeader `form:"file"`
+		Active   bool                  `form:"active" json:"active" gorm:"not null;default:true"`
+		ImageUrl *string               `form:"imageUrl" json:"imageUrl,omitempty"`
 	}
 )
 
@@ -21,10 +22,11 @@ func ParseSkuToDTO(entity domain.Sku) SkuDTO {
 	price := utils.Float64ToCurrency(entity.Price)
 
 	return SkuDTO{
-		ID:     entity.ID,
-		Name:   entity.Name,
-		Price:  price,
-		Active: entity.Active,
+		ID:       entity.ID,
+		Name:     entity.Name,
+		Price:    price,
+		Active:   entity.Active,
+		ImageUrl: entity.ImageUrl,
 	}
 }
 

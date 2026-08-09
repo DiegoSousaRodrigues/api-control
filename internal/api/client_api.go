@@ -2,6 +2,8 @@ package api
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/api-control/internal/dto"
 	"github.com/api-control/internal/service"
 	"github.com/gin-gonic/gin"
@@ -34,7 +36,7 @@ func (c *clientApi) ChangeStatus(ctx *gin.Context) {
 	}
 
 	err := service.ClientService.ChangeStatus(clientID, status)
-	if err != nil{
+	if err != nil {
 		fmt.Println("ERROR ON SERVICE CLIENT API: ", err.Error())
 		ctx.AbortWithStatusJSON(500, gin.H{"erro": err.Error()})
 		return
@@ -47,12 +49,13 @@ func (c *clientApi) Update(ctx *gin.Context) {
 	dtoClient := &dto.ClientDTO{}
 
 	clientID := ctx.Param("id")
-	if clientID == "" {
-		ctx.AbortWithStatusJSON(500, gin.H{"erro": "Necessario ID do cliente"})
+	parsedClientID, err := strconv.ParseInt(clientID, 10, 64)
+	if err != nil || parsedClientID <= 0 {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"erro": "ID do cliente inválido"})
 		return
 	}
 
-	err := ctx.ShouldBind(&dtoClient)
+	err = ctx.ShouldBind(&dtoClient)
 	if err != nil {
 		fmt.Println("ERROR ON BIND CLIENT API: ", err.Error())
 		ctx.AbortWithStatusJSON(500, gin.H{"erro": err.Error()})

@@ -100,7 +100,7 @@ func (c *skuService) Update(id string, skuDto dto.SkuDTO) (err error) {
 
 	err = repository.SkuRepository.Update(int64(intId), *entity)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil

@@ -1,8 +1,10 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/api-control/internal/domain"
-	"log"
+	"gorm.io/gorm"
 )
 
 var ClientRepository IClientRepository = &clientRepository{}
@@ -22,9 +24,12 @@ type clientRepository struct {
 func (c *clientRepository) ChangeStatus(id int64, status bool) (err error) {
 	db := c.db.PSQL()
 
-	sql := "update client set active = ? where id = ?"
-	if err := db.Exec(sql, status, id); err.Error != nil {
-		return err.Error
+	result := db.Model(&domain.Client{}).Where("id = ?", id).Update("active", status)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil
@@ -32,13 +37,35 @@ func (c *clientRepository) ChangeStatus(id int64, status bool) (err error) {
 
 func (c *clientRepository) Update(id int64, entity domain.Client) (err error) {
 	db := c.db.PSQL()
-	entity.ID = id
 
-	if err := db.Save(&entity); err.Error != nil {
-		return err.Error
+	result := db.Model(&domain.Client{}).Where("id = ?", id).Updates(clientUpdateFields(entity))
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil
+}
+
+func clientUpdateFields(entity domain.Client) map[string]interface{} {
+	return map[string]interface{}{
+		"last_updated":      time.Now(),
+		"name":              entity.Name,
+		"document":          entity.Document,
+		"phone":             entity.Phone,
+		"telephone":         entity.Telephone,
+		"birthdate":         entity.Birthdate,
+		"street":            entity.Street,
+		"quarter":           entity.Quarter,
+		"number":            entity.Number,
+		"complement":        entity.Complement,
+		"zipcode":           entity.Zipcode,
+		"address_type":      entity.AddressType,
+		"address_reference": entity.AddressReference,
+		"position":          entity.Position,
+	}
 }
 
 func (c *clientRepository) FindByID(id string) (entity *domain.Client, err error) {
@@ -65,7 +92,6 @@ func (c *clientRepository) List() (entity *[]domain.Client, err error) {
 	db := c.db.PSQL()
 
 	if err := db.Order("id").Find(&entity); err.Error != nil {
-		log.Fatalf("Erro ao buscar clientes: %v", err)
 		return nil, err.Error
 	}
 

@@ -59,7 +59,7 @@ func (c *orderService) FindByID(id string) (*dto.OrderResponseDTO, error) {
 func (c *orderService) Update(id string, orderDTO dto.OrderRequestDTO) (err error) {
 	entity, err := dto.ParseOrderRequestToEntity(orderDTO)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	intId, err := strconv.Atoi(id)
@@ -69,7 +69,7 @@ func (c *orderService) Update(id string, orderDTO dto.OrderRequestDTO) (err erro
 
 	err = repository.OrderRepository.Update(int64(intId), *entity)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil
