@@ -1,12 +1,35 @@
 package service
 
 import (
+	"bytes"
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"strings"
+	"time"
+)
+
+const (
+	MaxUploadFileBytes    int64 = 5 * 1024 * 1024
+	MaxUploadRequestBytes int64 = MaxUploadFileBytes + 1*1024*1024
+	MaxBlobResponseBytes  int64 = 32 * 1024
+	blobUploadTimeout           = 15 * time.Second
+)
+
+var (
+	ErrUploadFileTooLarge    = errors.New("imagem excede o tamanho maximo permitido")
+	ErrUploadUnsupportedType = errors.New("tipo de imagem nao permitido")
+	ErrUploadEmptyFile       = errors.New("imagem vazia")
+
+	blobAPIBaseURL = "https://blob.vercel-storage.com"
+	blobHTTPClient = &http.Client{Timeout: blobUploadTimeout}
 )
 
 type BlobResponse struct {
@@ -16,44 +39,40 @@ type BlobResponse struct {
 	ContentType string `json:"contentType"`
 }
 
-// UploadToVercelBlob aceita um Reader (arquivo aberto) e o nome que você quer dar
 func UploadToVercelBlob(file io.Reader, filename string, contentType string) (*BlobResponse, error) {
-	// _ = godotenv.Load() // Se já carregou no main.go, não precisa carregar aqui toda vez
-
 	token := os.Getenv("BLOB_READ_WRITE_TOKEN")
 	if token == "" {
-		return nil, fmt.Errorf("BLOB_READ_WRITE_TOKEN não configurado")
+		return nil, fmt.Errorf("servico de upload nao configurado")
 	}
 
-	// A URL da API REST da Vercel Blob é baseada no nome do arquivo
-	apiURL := fmt.Sprintf("https://blob.vercel-storage.com/%s", filename)
+	apiURL := fmt.Sprintf("%s/%s", strings.TrimRight(blobAPIBaseURL, "/"), filename)
 
-	req, err := http.NewRequest("PUT", apiURL, file)
+	ctx, cancel := context.WithTimeout(context.Background(), blobUploadTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, apiURL, file)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("x-api-version", "1")
-	// "1" adiciona um sufixo aleatório para evitar sobrescrever arquivos (ex: foto-xh52.png)
-	// Use "0" se quiser sobrescrever sempre o mesmo arquivo.
 	req.Header.Set("x-random-suffix", "1")
 	req.Header.Set("Content-Type", contentType)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := blobHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("erro Vercel Blob (%d): %s", resp.StatusCode, string(bodyBytes))
+	if resp.StatusCode != http.StatusOK {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, MaxBlobResponseBytes))
+		return nil, fmt.Errorf("falha ao enviar imagem para o storage (%d)", resp.StatusCode)
 	}
 
 	var blobResp BlobResponse
-	if err := json.NewDecoder(resp.Body).Decode(&blobResp); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, MaxBlobResponseBytes)).Decode(&blobResp); err != nil {
 		return nil, err
 	}
 
@@ -64,13 +83,27 @@ func LoadUploadToVercelBlob(file *multipart.FileHeader) (*string, error) {
 	var imageUrl *string
 
 	if file != nil {
-		_file, err := file.Open()
+		if err := validateUploadSize(file); err != nil {
+			return nil, err
+		}
+
+		openedFile, err := file.Open()
 		if err != nil {
 			return nil, err
 		}
-		defer _file.Close()
+		defer openedFile.Close()
 
-		resp, err := UploadToVercelBlob(_file, file.Filename, file.Header.Get("Content-Type"))
+		imageReader, contentType, err := validateAndPrepareImage(openedFile)
+		if err != nil {
+			return nil, err
+		}
+
+		filename, err := generateBlobFilename(contentType)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := UploadToVercelBlob(imageReader, filename, contentType)
 		if err != nil {
 			return nil, err
 		}
@@ -79,4 +112,71 @@ func LoadUploadToVercelBlob(file *multipart.FileHeader) (*string, error) {
 	}
 
 	return imageUrl, nil
+}
+
+func validateUploadSize(file *multipart.FileHeader) error {
+	if file.Size <= 0 {
+		return ErrUploadEmptyFile
+	}
+
+	if file.Size > MaxUploadFileBytes {
+		return ErrUploadFileTooLarge
+	}
+
+	return nil
+}
+
+func validateAndPrepareImage(file multipart.File) (io.Reader, string, error) {
+	head := make([]byte, 512)
+	n, err := file.Read(head)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return nil, "", err
+	}
+
+	if n == 0 {
+		return nil, "", ErrUploadEmptyFile
+	}
+
+	head = head[:n]
+	contentType := detectImageContentType(head)
+	if contentType == "" {
+		return nil, "", ErrUploadUnsupportedType
+	}
+
+	return io.MultiReader(bytes.NewReader(head), file), contentType, nil
+}
+
+func detectImageContentType(head []byte) string {
+	detected := http.DetectContentType(head)
+	switch detected {
+	case "image/jpeg", "image/png", "image/gif", "image/webp":
+		return detected
+	}
+
+	if len(head) >= 12 && bytes.Equal(head[0:4], []byte("RIFF")) && bytes.Equal(head[8:12], []byte("WEBP")) {
+		return "image/webp"
+	}
+
+	return ""
+}
+
+func generateBlobFilename(contentType string) (string, error) {
+	extensionByType := map[string]string{
+		"image/jpeg": ".jpg",
+		"image/png":  ".png",
+		"image/gif":  ".gif",
+		"image/webp": ".webp",
+	}
+
+	extension, ok := extensionByType[contentType]
+	if !ok {
+		return "", ErrUploadUnsupportedType
+	}
+
+	randomBytes := make([]byte, 16)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("sku-image-%d-%s%s", time.Now().UTC().UnixNano(), hex.EncodeToString(randomBytes), extension), nil
 }
