@@ -7,12 +7,16 @@ import (
 )
 
 type OrderSku struct {
-	ID          int64           `json:"id"          gorm:"primaryKey;autoIncrement;not null"`
-	DateCreated time.Time       `json:"dateCreated" gorm:"not null;default:current_timestamp"`
-	LastUpdated time.Time       `json:"lastUpdated" gorm:"not null;default:current_timestamp"`
-	Name        string          `json:"name"        gorm:"not null"`
-	Price       decimal.Decimal `json:"price" gorm:"type:numeric(14,2);not null"`
-	Quantity    int             `json:"quantity"    gorm:"not null"`
+	ID                int64            `json:"id"          gorm:"primaryKey;autoIncrement;not null"`
+	DateCreated       time.Time        `json:"dateCreated" gorm:"not null;default:current_timestamp"`
+	LastUpdated       time.Time        `json:"lastUpdated" gorm:"not null;default:current_timestamp"`
+	Name              string           `json:"name"        gorm:"not null"`
+	Price             decimal.Decimal  `json:"price"       gorm:"type:numeric(14,2);not null"`
+	Quantity          int              `json:"quantity"    gorm:"not null"`
+	SnapshotVersion   int16            `json:"-"            gorm:"not null;default:0"`
+	UnitPurchasePrice *decimal.Decimal `json:"-"            gorm:"type:numeric(14,2)"`
+	PurchaseTotal     *decimal.Decimal `json:"-"            gorm:"type:numeric(14,2)"`
+	UnitSalePrice     *decimal.Decimal `json:"-"            gorm:"type:numeric(14,2)"`
 
 	// Relacionamento com Order
 	OrderID int64 `json:"orderId" gorm:"not null;index"` // Chave estrangeira para Order
