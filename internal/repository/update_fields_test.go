@@ -59,15 +59,39 @@ func TestSkuUpdateFieldsIncludesImageOnlyWhenProvided(t *testing.T) {
 
 func TestApplyOrderSkuSnapshotUsesSkuDataAndQuantity(t *testing.T) {
 	orderSku := domain.OrderSku{Quantity: 3}
-	sku := domain.Sku{Name: "Product", SalePrice: decimal.RequireFromString("12.50")}
+	purchasePrice := decimal.RequireFromString("7.25")
+	sku := domain.Sku{Name: "Product", PurchasePrice: &purchasePrice, SalePrice: decimal.RequireFromString("12.50")}
 
-	applyOrderSkuSnapshot(&orderSku, sku)
+	if err := applyOrderSkuSnapshot(&orderSku, sku); err != nil {
+		t.Fatal(err)
+	}
 
 	if orderSku.Name != "Product" {
 		t.Fatalf("Name = %q, want Product", orderSku.Name)
 	}
 	if !orderSku.Price.Equal(decimal.RequireFromString("37.50")) {
 		t.Fatalf("Price = %v, want 37.5", orderSku.Price)
+	}
+	if orderSku.SnapshotVersion != 1 {
+		t.Fatalf("SnapshotVersion = %d, want 1", orderSku.SnapshotVersion)
+	}
+	if orderSku.UnitPurchasePrice == nil || !orderSku.UnitPurchasePrice.Equal(decimal.RequireFromString("7.25")) {
+		t.Fatalf("UnitPurchasePrice = %v, want 7.25", orderSku.UnitPurchasePrice)
+	}
+	if orderSku.PurchaseTotal == nil || !orderSku.PurchaseTotal.Equal(decimal.RequireFromString("21.75")) {
+		t.Fatalf("PurchaseTotal = %v, want 21.75", orderSku.PurchaseTotal)
+	}
+	if orderSku.UnitSalePrice == nil || !orderSku.UnitSalePrice.Equal(decimal.RequireFromString("12.50")) {
+		t.Fatalf("UnitSalePrice = %v, want 12.50", orderSku.UnitSalePrice)
+	}
+	if orderSku.UnitPurchasePrice == sku.PurchasePrice {
+		t.Fatal("UnitPurchasePrice must be an independent decimal pointer")
+	}
+
+	purchasePrice = decimal.RequireFromString("99.99")
+	sku.SalePrice = decimal.RequireFromString("88.88")
+	if !orderSku.UnitPurchasePrice.Equal(decimal.RequireFromString("7.25")) || !orderSku.UnitSalePrice.Equal(decimal.RequireFromString("12.50")) {
+		t.Fatal("changing SKU prices must not mutate the order snapshot")
 	}
 }
 

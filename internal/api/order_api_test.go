@@ -2,12 +2,14 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/api-control/internal/dto"
+	"github.com/api-control/internal/repository"
 	"github.com/api-control/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -61,5 +63,26 @@ func TestOrderUpdateRejectsInvalidIDBeforeService(t *testing.T) {
 
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400; body = %s", response.Code, response.Body.String())
+	}
+}
+
+func TestOrderAddReturnsSanitizedUnprocessableEntityForMissingSkuCost(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	originalService := service.OrderService
+	service.OrderService = &orderServiceFake{addErr: fmt.Errorf("hydrate sku 77 snapshot: %w", repository.ErrOrderSkuPurchasePriceMissing)}
+	t.Cleanup(func() { service.OrderService = originalService })
+
+	router := gin.New()
+	router.POST("/order", OrderApi.Add)
+	request := httptest.NewRequest(http.MethodPost, "/order", strings.NewReader(`{"clientId":1,"orderYear":2026,"orderMonth":1,"previousMonthPayment":0,"products":[{"productId":77,"quantity":1}]}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want 422; body = %s", response.Code, response.Body.String())
+	}
+	if strings.Contains(response.Body.String(), "77") || !strings.Contains(response.Body.String(), repository.ErrOrderSkuPurchasePriceMissing.Error()) {
+		t.Fatalf("response is not sanitized: %s", response.Body.String())
 	}
 }

@@ -148,6 +148,10 @@ func abortOrderError(ctx *gin.Context, err error) {
 		ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"erro": err.Error()})
 	case errors.Is(err, gorm.ErrRecordNotFound):
 		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"erro": "Cliente ou produto nao encontrado"})
+	case errors.Is(err, repository.ErrOrderSkuPurchasePriceMissing):
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"erro": repository.ErrOrderSkuPurchasePriceMissing.Error()})
+	case errors.Is(err, repository.ErrOrderSkuSnapshotOutOfRange):
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"erro": repository.ErrOrderSkuSnapshotOutOfRange.Error()})
 	case errors.Is(err, repository.ErrOrderClientInactive), errors.Is(err, repository.ErrOrderSkuInactive),
 		errors.Is(err, repository.ErrOrderPaymentNegative), errors.Is(err, service.ErrOrderFutureCompetence),
 		errors.Is(err, repository.ErrOrderCompetenceRequired),

@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-var OrderRepository IOrderRepository = &orderRepository{}
+var OrderRepository IOrderRepository = &orderRepository{db: domain.BaseRepository{}}
 
 type IOrderRepository interface {
 	List(year int16, month int16) (entity *[]domain.Order, err error)
@@ -20,13 +20,19 @@ type IOrderRepository interface {
 	Update(id int64, entity domain.Order) (err error)
 }
 
+type orderDatabase interface {
+	PSQL() *gorm.DB
+}
+
 type orderRepository struct {
-	db domain.BaseRepository
+	db orderDatabase
 }
 
 var (
 	ErrOrderClientInactive             = errors.New("order client is inactive")
 	ErrOrderSkuInactive                = errors.New("order sku is inactive")
+	ErrOrderSkuPurchasePriceMissing    = errors.New("order sku purchase price is required")
+	ErrOrderSkuSnapshotOutOfRange      = errors.New("order sku snapshot exceeds numeric range")
 	ErrOrderPaymentExceedsBalance      = errors.New("previous month payment exceeds accumulated balance")
 	ErrOrderFinancialUpdateUnsupported = errors.New("financial order updates are not supported")
 	ErrOrderCompetenceExists           = errors.New("client already has an order for this competence")
@@ -86,10 +92,7 @@ func (c *orderRepository) Add(order domain.Order) (err error) {
 			return err
 		}
 		order.CarriedBalance = carriedBalance
-		total := decimal.Zero
-		for _, item := range order.OrderSkus {
-			total = total.Add(item.Price)
-		}
+		total := orderItemsTotal(order.OrderSkus)
 		if err := tx.Create(&order).Error; err != nil {
 			return err
 		}
@@ -158,7 +161,9 @@ func hydrateOrderSkuSnapshots(tx *gorm.DB, order *domain.Order) error {
 			return fmt.Errorf("%w: %d", ErrOrderSkuInactive, sku.ID)
 		}
 
-		applyOrderSkuSnapshot(&order.OrderSkus[index], sku)
+		if err := applyOrderSkuSnapshot(&order.OrderSkus[index], sku); err != nil {
+			return fmt.Errorf("hydrate sku %d snapshot: %w", sku.ID, err)
+		}
 	}
 
 	return nil
@@ -187,7 +192,44 @@ func validateOrderClientForUpdate(tx *gorm.DB, clientID int64) error {
 	return nil
 }
 
-func applyOrderSkuSnapshot(orderSku *domain.OrderSku, sku domain.Sku) {
+func applyOrderSkuSnapshot(orderSku *domain.OrderSku, sku domain.Sku) error {
+	if sku.PurchasePrice == nil {
+		return ErrOrderSkuPurchasePriceMissing
+	}
+
+	quantity := decimal.NewFromInt(int64(orderSku.Quantity))
+	unitPurchasePrice := sku.PurchasePrice.Copy()
+	purchaseTotal := unitPurchasePrice.Mul(quantity)
+	unitSalePrice := sku.SalePrice.Copy()
+	saleTotal := unitSalePrice.Mul(quantity)
+	if !fitsNumeric14_2(purchaseTotal) || !fitsNumeric14_2(saleTotal) {
+		return ErrOrderSkuSnapshotOutOfRange
+	}
+
 	orderSku.Name = sku.Name
-	orderSku.Price = sku.SalePrice.Mul(decimal.NewFromInt(int64(orderSku.Quantity)))
+	orderSku.SnapshotVersion = 1
+	orderSku.UnitPurchasePrice = decimalPointer(unitPurchasePrice)
+	orderSku.PurchaseTotal = decimalPointer(purchaseTotal)
+	orderSku.UnitSalePrice = decimalPointer(unitSalePrice)
+	orderSku.Price = saleTotal
+
+	return nil
+}
+
+func decimalPointer(value decimal.Decimal) *decimal.Decimal {
+	copy := value.Copy()
+	return &copy
+}
+
+func orderItemsTotal(items []domain.OrderSku) decimal.Decimal {
+	total := decimal.Zero
+	for _, item := range items {
+		total = total.Add(item.Price)
+	}
+	return total
+}
+
+func fitsNumeric14_2(value decimal.Decimal) bool {
+	max := decimal.RequireFromString("999999999999.99")
+	return value.Abs().LessThanOrEqual(max)
 }
