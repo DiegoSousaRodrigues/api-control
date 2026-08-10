@@ -51,6 +51,7 @@ func (r *routes) setupRouter() *gin.Engine {
 	groupOrder := router.Group("order", utils.JWTAuthMiddleware())
 	{
 		groupOrder.GET("/list", api.OrderApi.List)
+		groupOrder.GET("/open-balance", api.OrderApi.OpenBalance)
 		groupOrder.GET("/:id", api.OrderApi.FindByID)
 		groupOrder.POST("/", api.OrderApi.Add)
 		groupOrder.PUT("/:id", api.OrderApi.Update)

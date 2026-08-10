@@ -1,5 +1,3 @@
-BEGIN;
-
 ALTER TABLE sku
     ADD COLUMN IF NOT EXISTS purchase_price NUMERIC(14,2),
     ADD COLUMN IF NOT EXISTS sale_price NUMERIC(14,2);
@@ -32,5 +30,3 @@ ALTER TABLE sku VALIDATE CONSTRAINT sku_sale_price_nonnegative;
 ALTER TABLE order_sku
     ALTER COLUMN price TYPE NUMERIC(14,2)
     USING ROUND(price::numeric, 2);
-
-COMMIT;

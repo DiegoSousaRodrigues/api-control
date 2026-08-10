@@ -1,7 +1,10 @@
 package service
 
 import (
+	"errors"
 	"strconv"
+	"time"
+	_ "time/tzdata"
 
 	"github.com/api-control/internal/dto"
 	"github.com/api-control/internal/repository"
@@ -10,16 +13,25 @@ import (
 var OrderService IOrderService = &orderService{}
 
 type IOrderService interface {
-	List() (*[]dto.OrderResponseDTO, error)
+	List(year int16, month int16) (*[]dto.OrderResponseDTO, error)
 	Add(orderDTO dto.OrderRequestDTO) error
+	OpenBalance(clientID int64, year int16, month int16) (*dto.OpenBalanceDTO, error)
 	FindByID(id string) (*dto.OrderResponseDTO, error)
 	Update(id string, orderDTO dto.OrderRequestDTO) (err error)
 }
 
 type orderService struct{}
 
-func (s *orderService) List() (*[]dto.OrderResponseDTO, error) {
-	listEntity, err := repository.OrderRepository.List()
+var (
+	ErrOrderFutureCompetence = errors.New("future order competence is not allowed")
+	orderNow                 = time.Now
+)
+
+func (s *orderService) List(year int16, month int16) (*[]dto.OrderResponseDTO, error) {
+	if err := validateCompetence(year, month); err != nil {
+		return nil, err
+	}
+	listEntity, err := repository.OrderRepository.List(year, month)
 	if err != nil {
 		return nil, err
 	}
@@ -38,10 +50,45 @@ func (c *orderService) Add(orderDTO dto.OrderRequestDTO) error {
 	if err != nil {
 		return err
 	}
+	if err := validateCompetence(*entity.OrderYear, *entity.OrderMonth); err != nil {
+		return err
+	}
 
 	err = repository.OrderRepository.Add(*entity)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (c *orderService) OpenBalance(clientID int64, year int16, month int16) (*dto.OpenBalanceDTO, error) {
+	if clientID <= 0 {
+		return nil, dto.ErrOrderClientRequired
+	}
+	if err := validateCompetence(year, month); err != nil {
+		return nil, err
+	}
+	balance, err := repository.OrderRepository.OpenBalance(clientID, year, month)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.OpenBalanceDTO{ClientID: clientID, OrderYear: year, OrderMonth: month, Balance: dto.NewMoney(balance)}, nil
+}
+
+func validateCompetence(year int16, month int16) error {
+	if year < 1 {
+		return dto.ErrOrderYearInvalid
+	}
+	if month < 1 || month > 12 {
+		return dto.ErrOrderMonthInvalid
+	}
+	location, err := time.LoadLocation("America/Sao_Paulo")
+	if err != nil {
+		return err
+	}
+	now := orderNow().In(location)
+	if int(year) > now.Year() || (int(year) == now.Year() && int(month) > int(now.Month())) {
+		return ErrOrderFutureCompetence
 	}
 	return nil
 }
@@ -57,20 +104,9 @@ func (c *orderService) FindByID(id string) (*dto.OrderResponseDTO, error) {
 }
 
 func (c *orderService) Update(id string, orderDTO dto.OrderRequestDTO) (err error) {
-	entity, err := dto.ParseOrderRequestToEntity(orderDTO)
+	_, err = strconv.Atoi(id)
 	if err != nil {
 		return err
 	}
-
-	intId, err := strconv.Atoi(id)
-	if err != nil {
-		return err
-	}
-
-	err = repository.OrderRepository.Update(int64(intId), *entity)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return repository.ErrOrderFinancialUpdateUnsupported
 }

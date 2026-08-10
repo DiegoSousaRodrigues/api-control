@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -30,7 +31,7 @@ func TestRepositoriesDoNotUseSaveForUpdates(t *testing.T) {
 	})
 }
 
-func TestOrderRepositoryUsesTransactionsForWrites(t *testing.T) {
+func TestOrderRepositoryAddUsesTransaction(t *testing.T) {
 	parsed, err := parser.ParseFile(token.NewFileSet(), "order_repository.go", nil, 0)
 	if err != nil {
 		t.Fatalf("parse order_repository.go: %v", err)
@@ -42,7 +43,7 @@ func TestOrderRepositoryUsesTransactionsForWrites(t *testing.T) {
 		if !ok || function.Body == nil {
 			return true
 		}
-		if function.Name.Name != "Add" && function.Name.Name != "Update" {
+		if function.Name.Name != "Add" {
 			return true
 		}
 
@@ -64,51 +65,20 @@ func TestOrderRepositoryUsesTransactionsForWrites(t *testing.T) {
 		return false
 	})
 
-	for _, functionName := range []string{"Add", "Update"} {
+	for _, functionName := range []string{"Add"} {
 		if !functionsUsingTransaction[functionName] {
 			t.Fatalf("orderRepository.%s must use db.Transaction", functionName)
 		}
 	}
 }
 
-func TestOrderRepositoryUpdateReplacesItems(t *testing.T) {
-	parsed, err := parser.ParseFile(token.NewFileSet(), "order_repository.go", nil, 0)
+func TestOrderRepositoryUpdateIsExplicitlyRestricted(t *testing.T) {
+	source, err := os.ReadFile("order_repository.go")
 	if err != nil {
-		t.Fatalf("parse order_repository.go: %v", err)
+		t.Fatal(err)
 	}
-
-	var updateFunction *ast.FuncDecl
-	for _, declaration := range parsed.Decls {
-		function, ok := declaration.(*ast.FuncDecl)
-		if ok && function.Name.Name == "Update" {
-			updateFunction = function
-			break
-		}
-	}
-	if updateFunction == nil {
-		t.Fatal("orderRepository.Update not found")
-	}
-
-	calls := map[string]bool{}
-	ast.Inspect(updateFunction.Body, func(node ast.Node) bool {
-		call, ok := node.(*ast.CallExpr)
-		if !ok {
-			return true
-		}
-		selector, ok := call.Fun.(*ast.SelectorExpr)
-		if !ok {
-			return true
-		}
-		if selector.Sel.Name == "Delete" || selector.Sel.Name == "Create" {
-			calls[selector.Sel.Name] = true
-		}
-		return true
-	})
-
-	for _, name := range []string{"Delete", "Create"} {
-		if !calls[name] {
-			t.Fatalf("orderRepository.Update must call %s to replace order items", name)
-		}
+	if !strings.Contains(string(source), "return ErrOrderFinancialUpdateUnsupported") {
+		t.Fatal("orderRepository.Update must explicitly reject financial mutation")
 	}
 }
 

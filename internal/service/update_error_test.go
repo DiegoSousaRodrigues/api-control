@@ -46,8 +46,13 @@ type failingOrderRepository struct {
 	received    *domain.Order
 }
 
-func (f *failingOrderRepository) List() (*[]domain.Order, error)         { return nil, errListRepository }
-func (f *failingOrderRepository) Add(domain.Order) error                 { return nil }
+func (f *failingOrderRepository) List(int16, int16) (*[]domain.Order, error) {
+	return nil, errListRepository
+}
+func (f *failingOrderRepository) Add(domain.Order) error { return nil }
+func (f *failingOrderRepository) OpenBalance(int64, int16, int16) (decimal.Decimal, error) {
+	return decimal.Zero, nil
+}
 func (f *failingOrderRepository) FindByID(string) (*domain.Order, error) { return nil, nil }
 func (f *failingOrderRepository) Update(int64, domain.Order) error {
 	f.updateCalls++
@@ -58,8 +63,11 @@ type capturingOrderRepository struct {
 	received *domain.Order
 }
 
-func (f *capturingOrderRepository) List() (*[]domain.Order, error)         { return nil, nil }
-func (f *capturingOrderRepository) Add(entity domain.Order) error          { f.received = &entity; return nil }
+func (f *capturingOrderRepository) List(int16, int16) (*[]domain.Order, error) { return nil, nil }
+func (f *capturingOrderRepository) Add(entity domain.Order) error              { f.received = &entity; return nil }
+func (f *capturingOrderRepository) OpenBalance(int64, int16, int16) (decimal.Decimal, error) {
+	return decimal.Zero, nil
+}
 func (f *capturingOrderRepository) FindByID(string) (*domain.Order, error) { return nil, nil }
 func (f *capturingOrderRepository) Update(_ int64, entity domain.Order) error {
 	f.received = &entity
@@ -124,15 +132,12 @@ func TestOrderUpdatePropagatesRepositoryError(t *testing.T) {
 	repository.OrderRepository = fakeRepository
 	t.Cleanup(func() { repository.OrderRepository = originalRepository })
 
-	err := (&orderService{}).Update("2", dto.OrderRequestDTO{
-		ClientID: "1",
-		Products: []dto.OrderSkuDTO{{ProductId: "3", Quantity: "1"}},
-	})
-	if !errors.Is(err, errUpdateRepository) {
-		t.Fatalf("Update error = %v, want %v", err, errUpdateRepository)
+	err := (&orderService{}).Update("2", dto.OrderRequestDTO{})
+	if !errors.Is(err, repository.ErrOrderFinancialUpdateUnsupported) {
+		t.Fatalf("Update error = %v, want restricted update", err)
 	}
-	if fakeRepository.updateCalls != 1 {
-		t.Fatalf("repository Update calls = %d, want 1", fakeRepository.updateCalls)
+	if fakeRepository.updateCalls != 0 {
+		t.Fatalf("repository Update calls = %d, want 0", fakeRepository.updateCalls)
 	}
 }
 
@@ -141,7 +146,7 @@ func TestOrderListPropagatesRepositoryError(t *testing.T) {
 	repository.OrderRepository = &failingOrderRepository{}
 	t.Cleanup(func() { repository.OrderRepository = originalRepository })
 
-	result, err := (&orderService{}).List()
+	result, err := (&orderService{}).List(2020, 1)
 	if result != nil {
 		t.Fatalf("List result = %v, want nil", result)
 	}
@@ -156,7 +161,7 @@ func TestOrderUpdatePropagatesParseError(t *testing.T) {
 	repository.OrderRepository = fakeRepository
 	t.Cleanup(func() { repository.OrderRepository = originalRepository })
 
-	err := (&orderService{}).Update("2", dto.OrderRequestDTO{ClientID: "invalid"})
+	err := (&orderService{}).Update("invalid", dto.OrderRequestDTO{})
 	if err == nil {
 		t.Fatal("Update error = nil, want parse error")
 	}
@@ -171,27 +176,11 @@ func TestOrderUpdateLeavesSkuSnapshotToRepository(t *testing.T) {
 	repository.OrderRepository = fakeOrderRepository
 	t.Cleanup(func() { repository.OrderRepository = originalOrderRepository })
 
-	err := (&orderService{}).Update("2", dto.OrderRequestDTO{
-		ClientID: "4",
-		Products: []dto.OrderSkuDTO{{ProductId: "3", Quantity: "1"}},
-	})
-	if err != nil {
-		t.Fatalf("Update error = %v, want nil", err)
+	err := (&orderService{}).Update("2", dto.OrderRequestDTO{})
+	if !errors.Is(err, repository.ErrOrderFinancialUpdateUnsupported) {
+		t.Fatalf("Update error = %v, want restricted", err)
 	}
-	if fakeOrderRepository.received == nil {
-		t.Fatal("repository did not receive parsed order")
-	}
-	if fakeOrderRepository.received.ClientId != 4 {
-		t.Fatalf("ClientId = %d, want 4", fakeOrderRepository.received.ClientId)
-	}
-	if len(fakeOrderRepository.received.OrderSkus) != 1 {
-		t.Fatalf("OrderSkus length = %d, want 1", len(fakeOrderRepository.received.OrderSkus))
-	}
-	orderSku := fakeOrderRepository.received.OrderSkus[0]
-	if orderSku.SkuID != 3 || orderSku.Quantity != 1 {
-		t.Fatalf("OrderSku = %+v, want SkuID 3 and Quantity 1", orderSku)
-	}
-	if orderSku.Name != "" || !orderSku.Price.IsZero() {
-		t.Fatalf("snapshot = name %q price %v, want empty values before repository transaction", orderSku.Name, orderSku.Price)
+	if fakeOrderRepository.received != nil {
+		t.Fatal("restricted update must not reach repository")
 	}
 }

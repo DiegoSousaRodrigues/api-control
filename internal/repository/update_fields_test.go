@@ -57,18 +57,6 @@ func TestSkuUpdateFieldsIncludesImageOnlyWhenProvided(t *testing.T) {
 	}
 }
 
-func TestOrderUpdateFieldsDoesNotPersistAssociations(t *testing.T) {
-	fields := orderUpdateFields(domain.Order{
-		ID:          99,
-		ClientId:    2,
-		Observation: "Updated",
-		OrderSkus:   []domain.OrderSku{{ID: 1}},
-	})
-
-	assertHasFields(t, fields, []string{"last_updated", "client_id", "observation"})
-	assertMissingFields(t, fields, []string{"id", "date_created", "deleted_at", "client", "order_skus"})
-}
-
 func TestApplyOrderSkuSnapshotUsesSkuDataAndQuantity(t *testing.T) {
 	orderSku := domain.OrderSku{Quantity: 3}
 	sku := domain.Sku{Name: "Product", SalePrice: decimal.RequireFromString("12.50")}

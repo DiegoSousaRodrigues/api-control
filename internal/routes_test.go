@@ -26,3 +26,13 @@ func TestOrderStatusRouteIsNotRegistered(t *testing.T) {
 		t.Fatalf("POST /order/status/1/true status = %d, want %d", response.Code, http.StatusNotFound)
 	}
 }
+
+func TestOrderOpenBalanceRouteIsRegistered(t *testing.T) {
+	router := (&routes{}).setupRouter()
+	for _, route := range router.Routes() {
+		if route.Method == http.MethodGet && route.Path == "/order/open-balance" {
+			return
+		}
+	}
+	t.Fatal("GET /order/open-balance route is not registered")
+}

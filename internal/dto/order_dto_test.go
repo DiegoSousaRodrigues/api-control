@@ -1,12 +1,25 @@
 package dto
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
 	"github.com/api-control/internal/domain"
 	"github.com/shopspring/decimal"
 )
+
+func TestOrderRequestRequiresNumericJSONFields(t *testing.T) {
+	for _, payload := range []string{
+		`{"clientId":"1","orderYear":2026,"orderMonth":8,"previousMonthPayment":0,"products":[]}`,
+		`{"clientId":1,"orderYear":2026,"orderMonth":8,"previousMonthPayment":"0.00","products":[]}`,
+	} {
+		var request OrderRequestDTO
+		if err := json.Unmarshal([]byte(payload), &request); err == nil {
+			t.Fatalf("payload accepted: %s", payload)
+		}
+	}
+}
 
 func TestParseOrderSkuRequestRejectsEmptyProducts(t *testing.T) {
 	_, err := ParseOrderSkuRequestToEntity(nil)
@@ -16,9 +29,9 @@ func TestParseOrderSkuRequestRejectsEmptyProducts(t *testing.T) {
 }
 
 func TestParseOrderSkuRequestRejectsNonPositiveQuantity(t *testing.T) {
-	for _, quantity := range []string{"0", "-1"} {
-		t.Run(quantity, func(t *testing.T) {
-			_, err := ParseOrderSkuRequestToEntity([]OrderSkuDTO{{ProductId: "1", Quantity: quantity}})
+	for _, quantity := range []int{0, -1} {
+		t.Run("invalid", func(t *testing.T) {
+			_, err := ParseOrderSkuRequestToEntity([]OrderSkuDTO{{ProductId: 1, Quantity: quantity}})
 			if !errors.Is(err, ErrOrderProductQuantityPositive) {
 				t.Fatalf("error = %v, want %v", err, ErrOrderProductQuantityPositive)
 			}
@@ -28,8 +41,8 @@ func TestParseOrderSkuRequestRejectsNonPositiveQuantity(t *testing.T) {
 
 func TestParseOrderSkuRequestRejectsDuplicatedProduct(t *testing.T) {
 	_, err := ParseOrderSkuRequestToEntity([]OrderSkuDTO{
-		{ProductId: "1", Quantity: "1"},
-		{ProductId: "1", Quantity: "2"},
+		{ProductId: 1, Quantity: 1},
+		{ProductId: 1, Quantity: 2},
 	})
 	if !errors.Is(err, ErrOrderProductDuplicated) {
 		t.Fatalf("error = %v, want %v", err, ErrOrderProductDuplicated)
@@ -37,7 +50,7 @@ func TestParseOrderSkuRequestRejectsDuplicatedProduct(t *testing.T) {
 }
 
 func TestParseOrderSkuRequestKeepsSkuAndQuantity(t *testing.T) {
-	orderSkus, err := ParseOrderSkuRequestToEntity([]OrderSkuDTO{{ProductId: "7", Quantity: "3"}})
+	orderSkus, err := ParseOrderSkuRequestToEntity([]OrderSkuDTO{{ProductId: 7, Quantity: 3}})
 	if err != nil {
 		t.Fatalf("error = %v, want nil", err)
 	}

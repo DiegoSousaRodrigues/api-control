@@ -1,14 +1,23 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type Order struct {
-	ID          int64     `json:"id"          gorm:"primaryKey;autoIncrement;not null"`
-	DateCreated time.Time `json:"dateCreated" gorm:"not null;default:current_timestamp"`
-	LastUpdated time.Time `json:"lastUpdated" gorm:"not null;default:current_timestamp"`
-	ClientId    int64     `json:"clientId"    gorm:"not null;index"`
-	DeletedAt   time.Time `json:"deletedAt"   gorm:"default:current_timestamp"`
-	Observation string    `json:"observation" gorm:""`
+	ID                   int64           `json:"id"          gorm:"primaryKey;autoIncrement;not null"`
+	DateCreated          time.Time       `json:"dateCreated" gorm:"not null;default:current_timestamp"`
+	LastUpdated          time.Time       `json:"lastUpdated" gorm:"not null;default:current_timestamp"`
+	ClientId             int64           `json:"clientId"    gorm:"not null;index"`
+	DeletedAt            time.Time       `json:"deletedAt"   gorm:"default:current_timestamp"`
+	Observation          string          `json:"observation" gorm:""`
+	OrderYear            *int16          `json:"orderYear"`
+	OrderMonth           *int16          `json:"orderMonth"`
+	OpeningBalance       decimal.Decimal `json:"openingBalance" gorm:"type:numeric(14,2);not null;default:0"`
+	PreviousMonthPayment decimal.Decimal `json:"previousMonthPayment" gorm:"type:numeric(14,2);not null;default:0"`
+	CarriedBalance       decimal.Decimal `json:"carriedBalance" gorm:"type:numeric(14,2);not null;default:0"`
 
 	Client    Client     `json:"client"       gorm:"foreignKey:ClientId;references:ID"`
 	OrderSkus []OrderSku `json:"orderSkus"    gorm:"foreignKey:OrderID"` // Relacionamento has-many com OrderSku

@@ -2,7 +2,6 @@ package dto
 
 import (
 	"errors"
-	"strconv"
 	"time"
 
 	"github.com/api-control/internal/domain"
@@ -11,24 +10,33 @@ import (
 
 type (
 	OrderSkuDTO struct {
-		ProductId string `json:"productId"`
-		Quantity  string `json:"quantity"`
+		ProductId int64 `json:"productId"`
+		Quantity  int   `json:"quantity"`
 	}
 
 	OrderRequestDTO struct {
-		ClientID    string        `json:"clientId"`
-		Observation string        `json:"observation"`
-		Products    []OrderSkuDTO `json:"products"`
+		ClientID             int64         `json:"clientId"`
+		OrderYear            int16         `json:"orderYear"`
+		OrderMonth           int16         `json:"orderMonth"`
+		PreviousMonthPayment *Money        `json:"previousMonthPayment"`
+		Observation          string        `json:"observation"`
+		Products             []OrderSkuDTO `json:"products"`
 	}
 
 	OrderResponseDTO struct {
-		ID          int64                  `json:"id"`
-		DateCreated time.Time              `json:"dateCreated"`
-		LastUpdated time.Time              `json:"lastUpdated"`
-		Observation string                 `json:"observation"`
-		Client      ClientDTO              `json:"client"`
-		OrderSkus   []OrderItemResponseDTO `json:"orderSkus"`
-		PriceTotal  Money                  `json:"priceTotal"`
+		ID                   int64                  `json:"id"`
+		DateCreated          time.Time              `json:"dateCreated"`
+		LastUpdated          time.Time              `json:"lastUpdated"`
+		Observation          string                 `json:"observation"`
+		Client               ClientDTO              `json:"client"`
+		OrderSkus            []OrderItemResponseDTO `json:"orderSkus"`
+		PriceTotal           Money                  `json:"priceTotal"`
+		OrderYear            *int16                 `json:"orderYear"`
+		OrderMonth           *int16                 `json:"orderMonth"`
+		OpeningBalance       Money                  `json:"openingBalance"`
+		PreviousMonthPayment Money                  `json:"previousMonthPayment"`
+		CarriedBalance       Money                  `json:"carriedBalance"`
+		AmountDue            Money                  `json:"amountDue"`
 	}
 
 	OrderItemResponseDTO struct {
@@ -48,12 +56,24 @@ type (
 		Active    bool    `json:"active"`
 		ImageUrl  *string `json:"imageUrl,omitempty"`
 	}
+
+	OpenBalanceDTO struct {
+		ClientID   int64 `json:"clientId"`
+		OrderYear  int16 `json:"orderYear"`
+		OrderMonth int16 `json:"orderMonth"`
+		Balance    Money `json:"balance"`
+	}
 )
 
 var (
 	ErrOrderRequiresProduct         = errors.New("order requires at least one product")
 	ErrOrderProductQuantityPositive = errors.New("order product quantity must be greater than zero")
 	ErrOrderProductDuplicated       = errors.New("order contains duplicated product")
+	ErrOrderClientRequired          = errors.New("order client is required")
+	ErrOrderYearInvalid             = errors.New("order year is invalid")
+	ErrOrderMonthInvalid            = errors.New("order month is invalid")
+	ErrOrderPaymentRequired         = errors.New("previous month payment is required")
+	ErrOrderPaymentNegative         = errors.New("previous month payment cannot be negative")
 )
 
 func ParseOrderToDTO(entity domain.Order) OrderResponseDTO {
@@ -68,13 +88,19 @@ func ParseOrderToDTO(entity domain.Order) OrderResponseDTO {
 	clientDTO := ParseClientToDTO(entity.Client)
 
 	return OrderResponseDTO{
-		ID:          entity.ID,
-		DateCreated: entity.DateCreated,
-		LastUpdated: entity.LastUpdated,
-		Observation: entity.Observation,
-		Client:      clientDTO,
-		OrderSkus:   orderSkusDTO,
-		PriceTotal:  NewMoney(total),
+		ID:                   entity.ID,
+		DateCreated:          entity.DateCreated,
+		LastUpdated:          entity.LastUpdated,
+		Observation:          entity.Observation,
+		Client:               clientDTO,
+		OrderSkus:            orderSkusDTO,
+		PriceTotal:           NewMoney(total),
+		OrderYear:            entity.OrderYear,
+		OrderMonth:           entity.OrderMonth,
+		OpeningBalance:       NewMoney(entity.OpeningBalance),
+		PreviousMonthPayment: NewMoney(entity.PreviousMonthPayment),
+		CarriedBalance:       NewMoney(entity.CarriedBalance),
+		AmountDue:            NewMoney(entity.CarriedBalance.Add(total)),
 	}
 }
 
@@ -102,9 +128,20 @@ func ParseOrderItemToDTO(entity domain.OrderSku) OrderItemResponseDTO {
 }
 
 func ParseOrderRequestToEntity(dto OrderRequestDTO) (*domain.Order, error) {
-	clientID, err := strconv.Atoi(dto.ClientID)
-	if err != nil {
-		return nil, err
+	if dto.ClientID <= 0 {
+		return nil, ErrOrderClientRequired
+	}
+	if dto.OrderYear < 1 {
+		return nil, ErrOrderYearInvalid
+	}
+	if dto.OrderMonth < 1 || dto.OrderMonth > 12 {
+		return nil, ErrOrderMonthInvalid
+	}
+	if dto.PreviousMonthPayment == nil {
+		return nil, ErrOrderPaymentRequired
+	}
+	if dto.PreviousMonthPayment.Decimal().IsNegative() {
+		return nil, ErrOrderPaymentNegative
 	}
 
 	orderSkus, err := ParseOrderSkuRequestToEntity(dto.Products)
@@ -113,9 +150,12 @@ func ParseOrderRequestToEntity(dto OrderRequestDTO) (*domain.Order, error) {
 	}
 
 	return &domain.Order{
-		ClientId:    int64(clientID),
-		Observation: dto.Observation,
-		OrderSkus:   *orderSkus,
+		ClientId:             dto.ClientID,
+		OrderYear:            &dto.OrderYear,
+		OrderMonth:           &dto.OrderMonth,
+		PreviousMonthPayment: dto.PreviousMonthPayment.Decimal(),
+		Observation:          dto.Observation,
+		OrderSkus:            *orderSkus,
 	}, nil
 }
 
@@ -128,26 +168,20 @@ func ParseOrderSkuRequestToEntity(dto []OrderSkuDTO) (*[]domain.OrderSku, error)
 	}
 
 	for _, v := range dto {
-		productID, err := strconv.ParseInt(v.ProductId, 10, 64)
-		if err != nil {
-			return nil, err
+		if v.ProductId <= 0 {
+			return nil, errors.New("order product id must be positive")
 		}
-
-		quantity, err := strconv.Atoi(v.Quantity)
-		if err != nil {
-			return nil, err
-		}
-		if quantity <= 0 {
+		if v.Quantity <= 0 {
 			return nil, ErrOrderProductQuantityPositive
 		}
-		if seenProducts[productID] {
+		if seenProducts[v.ProductId] {
 			return nil, ErrOrderProductDuplicated
 		}
-		seenProducts[productID] = true
+		seenProducts[v.ProductId] = true
 
 		orderSku := domain.OrderSku{
-			SkuID:    productID,
-			Quantity: quantity,
+			SkuID:    v.ProductId,
+			Quantity: v.Quantity,
 		}
 		list = append(list, orderSku)
 	}
