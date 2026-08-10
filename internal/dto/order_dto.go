@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/api-control/internal/domain"
-	"github.com/api-control/internal/utils"
+	"github.com/shopspring/decimal"
 )
 
 type (
@@ -28,17 +28,25 @@ type (
 		Observation string                 `json:"observation"`
 		Client      ClientDTO              `json:"client"`
 		OrderSkus   []OrderItemResponseDTO `json:"orderSkus"`
-		PriceTotal  string                 `json:"priceTotal"`
+		PriceTotal  Money                  `json:"priceTotal"`
 	}
 
 	OrderItemResponseDTO struct {
-		ID        int64  `json:"id"`
-		SkuID     int64  `json:"skuId"`
-		Name      string `json:"name"`
-		Quantity  int    `json:"quantity"`
-		UnitPrice string `json:"unitPrice"`
-		LineTotal string `json:"lineTotal"`
-		Sku       SkuDTO `json:"sku"`
+		ID        int64              `json:"id"`
+		SkuID     int64              `json:"skuId"`
+		Name      string             `json:"name"`
+		Quantity  int                `json:"quantity"`
+		UnitPrice Money              `json:"unitPrice"`
+		LineTotal Money              `json:"lineTotal"`
+		Sku       OrderSkuSummaryDTO `json:"sku"`
+	}
+
+	OrderSkuSummaryDTO struct {
+		ID        int64   `json:"id"`
+		Name      string  `json:"name"`
+		SalePrice Money   `json:"salePrice"`
+		Active    bool    `json:"active"`
+		ImageUrl  *string `json:"imageUrl,omitempty"`
 	}
 )
 
@@ -50,11 +58,11 @@ var (
 
 func ParseOrderToDTO(entity domain.Order) OrderResponseDTO {
 	var orderSkusDTO []OrderItemResponseDTO
-	var total float64
+	total := decimal.Zero
 
 	for _, orderSku := range entity.OrderSkus {
 		orderSkusDTO = append(orderSkusDTO, ParseOrderItemToDTO(orderSku))
-		total += orderSku.Price
+		total = total.Add(orderSku.Price)
 	}
 
 	clientDTO := ParseClientToDTO(entity.Client)
@@ -66,14 +74,14 @@ func ParseOrderToDTO(entity domain.Order) OrderResponseDTO {
 		Observation: entity.Observation,
 		Client:      clientDTO,
 		OrderSkus:   orderSkusDTO,
-		PriceTotal:  utils.Float64ToCurrency(total),
+		PriceTotal:  NewMoney(total),
 	}
 }
 
 func ParseOrderItemToDTO(entity domain.OrderSku) OrderItemResponseDTO {
-	unitPrice := float64(0)
+	unitPrice := decimal.Zero
 	if entity.Quantity > 0 {
-		unitPrice = entity.Price / float64(entity.Quantity)
+		unitPrice = entity.Price.Div(decimal.NewFromInt(int64(entity.Quantity))).Round(2)
 	}
 
 	return OrderItemResponseDTO{
@@ -81,9 +89,15 @@ func ParseOrderItemToDTO(entity domain.OrderSku) OrderItemResponseDTO {
 		SkuID:     entity.SkuID,
 		Name:      entity.Name,
 		Quantity:  entity.Quantity,
-		UnitPrice: utils.Float64ToCurrency(unitPrice),
-		LineTotal: utils.Float64ToCurrency(entity.Price),
-		Sku:       ParseSkuToDTO(entity.Sku),
+		UnitPrice: NewMoney(unitPrice),
+		LineTotal: NewMoney(entity.Price),
+		Sku: OrderSkuSummaryDTO{
+			ID:        entity.Sku.ID,
+			Name:      entity.Sku.Name,
+			SalePrice: NewMoney(entity.Sku.SalePrice),
+			Active:    entity.Sku.Active,
+			ImageUrl:  entity.Sku.ImageUrl,
+		},
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/api-control/internal/domain"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -139,5 +140,5 @@ func validateOrderClient(tx *gorm.DB, clientID int64) error {
 
 func applyOrderSkuSnapshot(orderSku *domain.OrderSku, sku domain.Sku) {
 	orderSku.Name = sku.Name
-	orderSku.Price = float64(orderSku.Quantity) * sku.Price
+	orderSku.Price = sku.SalePrice.Mul(decimal.NewFromInt(int64(orderSku.Quantity)))
 }

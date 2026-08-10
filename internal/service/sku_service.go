@@ -11,10 +11,10 @@ var SkuService ISkuService = &skuService{}
 
 type ISkuService interface {
 	List() (*[]dto.SkuDTO, error)
-	Add(clientDTO dto.SkuDTO) (err error)
+	Add(upload dto.SkuUpload) (err error)
 	ChangeStatus(id string, status string) error
 	FindByID(id string) (*dto.SkuDTO, error)
-	Update(id string, skuDto dto.SkuDTO) (err error)
+	Update(id string, upload dto.SkuUpload) (err error)
 }
 
 type skuService struct{}
@@ -34,13 +34,13 @@ func (s *skuService) List() (*[]dto.SkuDTO, error) {
 	return &listDTO, nil
 }
 
-func (c *skuService) Add(skuDto dto.SkuDTO) (err error) {
-	imageUrl, err := LoadUploadToVercelBlob(skuDto.File)
+func (c *skuService) Add(upload dto.SkuUpload) (err error) {
+	imageUrl, err := LoadUploadToVercelBlob(upload.File)
 	if err != nil {
 		return err
 	}
 
-	entity, err := dto.ParseSkuRequestToEntity(skuDto, imageUrl)
+	entity, err := dto.ParseSkuRequestToEntity(upload.Product, imageUrl)
 	if err != nil {
 		return err
 	}
@@ -82,13 +82,13 @@ func (c *skuService) FindByID(id string) (*dto.SkuDTO, error) {
 	return &dtoSku, nil
 }
 
-func (c *skuService) Update(id string, skuDto dto.SkuDTO) (err error) {
-	imageUrl, err := LoadUploadToVercelBlob(skuDto.File)
+func (c *skuService) Update(id string, upload dto.SkuUpload) (err error) {
+	imageUrl, err := LoadUploadToVercelBlob(upload.File)
 	if err != nil {
 		return err
 	}
 
-	entity, err := dto.ParseSkuRequestToEntity(skuDto, imageUrl)
+	entity, err := dto.ParseSkuRequestToEntity(upload.Product, imageUrl)
 	if err != nil {
 		return err
 	}

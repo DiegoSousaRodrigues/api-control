@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/api-control/internal/domain"
+	"github.com/shopspring/decimal"
 )
 
 func TestClientUpdateFieldsUsesAllowlist(t *testing.T) {
@@ -36,13 +37,14 @@ func TestClientUpdateFieldsUsesAllowlist(t *testing.T) {
 
 func TestSkuUpdateFieldsPreservesActiveAndMissingImage(t *testing.T) {
 	fields := skuUpdateFields(domain.Sku{
-		ID:     99,
-		Active: true,
-		Name:   "Product",
-		Price:  10.5,
+		ID:        99,
+		Active:    true,
+		Name:      "Product",
+		Price:     10.5,
+		SalePrice: decimal.RequireFromString("10.50"),
 	})
 
-	assertHasFields(t, fields, []string{"last_updated", "name", "price"})
+	assertHasFields(t, fields, []string{"last_updated", "name", "price", "purchase_price", "sale_price"})
 	assertMissingFields(t, fields, []string{"id", "date_created", "active", "image_url", "order_skus"})
 }
 
@@ -69,14 +71,14 @@ func TestOrderUpdateFieldsDoesNotPersistAssociations(t *testing.T) {
 
 func TestApplyOrderSkuSnapshotUsesSkuDataAndQuantity(t *testing.T) {
 	orderSku := domain.OrderSku{Quantity: 3}
-	sku := domain.Sku{Name: "Product", Price: 12.5}
+	sku := domain.Sku{Name: "Product", SalePrice: decimal.RequireFromString("12.50")}
 
 	applyOrderSkuSnapshot(&orderSku, sku)
 
 	if orderSku.Name != "Product" {
 		t.Fatalf("Name = %q, want Product", orderSku.Name)
 	}
-	if orderSku.Price != 37.5 {
+	if !orderSku.Price.Equal(decimal.RequireFromString("37.50")) {
 		t.Fatalf("Price = %v, want 37.5", orderSku.Price)
 	}
 }

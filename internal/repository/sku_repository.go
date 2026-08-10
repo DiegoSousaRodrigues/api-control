@@ -85,9 +85,11 @@ func (c *skuRepository) Update(id int64, entity domain.Sku) (err error) {
 
 func skuUpdateFields(entity domain.Sku) map[string]interface{} {
 	fields := map[string]interface{}{
-		"last_updated": time.Now(),
-		"name":         entity.Name,
-		"price":        entity.Price,
+		"last_updated":   time.Now(),
+		"name":           entity.Name,
+		"price":          entity.Price,
+		"purchase_price": entity.PurchasePrice,
+		"sale_price":     entity.SalePrice,
 	}
 
 	if entity.ImageUrl != nil {

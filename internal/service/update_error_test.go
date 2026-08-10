@@ -7,6 +7,7 @@ import (
 	"github.com/api-control/internal/domain"
 	"github.com/api-control/internal/dto"
 	"github.com/api-control/internal/repository"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -95,7 +96,9 @@ func TestSkuUpdatePropagatesRepositoryError(t *testing.T) {
 	repository.SkuRepository = &failingSkuRepository{}
 	t.Cleanup(func() { repository.SkuRepository = originalRepository })
 
-	err := (&skuService{}).Update("2", dto.SkuDTO{Name: "Product", Price: "R$ 10,00"})
+	purchase := dto.NewMoney(decimal.NewFromInt(5))
+	sale := dto.NewMoney(decimal.NewFromInt(10))
+	err := (&skuService{}).Update("2", dto.SkuUpload{Product: dto.SkuProductRequest{Name: "Product", PurchasePrice: &purchase, SalePrice: &sale}})
 	if !errors.Is(err, errUpdateRepository) {
 		t.Fatalf("Update error = %v, want %v", err, errUpdateRepository)
 	}
@@ -188,7 +191,7 @@ func TestOrderUpdateLeavesSkuSnapshotToRepository(t *testing.T) {
 	if orderSku.SkuID != 3 || orderSku.Quantity != 1 {
 		t.Fatalf("OrderSku = %+v, want SkuID 3 and Quantity 1", orderSku)
 	}
-	if orderSku.Name != "" || orderSku.Price != 0 {
+	if orderSku.Name != "" || !orderSku.Price.IsZero() {
 		t.Fatalf("snapshot = name %q price %v, want empty values before repository transaction", orderSku.Name, orderSku.Price)
 	}
 }

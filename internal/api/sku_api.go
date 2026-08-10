@@ -1,8 +1,11 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"mime"
 	"net/http"
 	"strings"
 
@@ -23,6 +26,14 @@ type ISkuApi interface {
 
 type skuApi struct{}
 
+const maxSkuProductJSONBytes int64 = 64 << 10
+
+var (
+	errSkuProductPartRequired = errors.New("product part is required")
+	errSkuProductMediaType    = errors.New("product part must be application/json")
+	errSkuProductPartTooLarge = errors.New("product part is too large")
+)
+
 func (c *skuApi) List(ctx *gin.Context) {
 	skuList, err := service.SkuService.List()
 	if err != nil {
@@ -34,17 +45,16 @@ func (c *skuApi) List(ctx *gin.Context) {
 }
 
 func (c *skuApi) Add(ctx *gin.Context) {
-	skuDto := &dto.SkuDTO{}
 	limitUploadRequest(ctx)
 
-	err := ctx.ShouldBind(skuDto)
+	upload, err := parseSkuUpload(ctx)
 	if err != nil {
 		fmt.Println("ERROR ON BIND SKU API: ", err.Error())
 		abortSkuUploadError(ctx, err)
 		return
 	}
 
-	err = service.SkuService.Add(*skuDto)
+	err = service.SkuService.Add(*upload)
 	if err != nil {
 		fmt.Println("ERROR ON ADD SKU API: ", err)
 		abortSkuUploadError(ctx, err)
@@ -94,7 +104,6 @@ func (c *skuApi) FindByID(ctx *gin.Context) {
 }
 
 func (c *skuApi) Update(ctx *gin.Context) {
-	dtoSku := &dto.SkuDTO{}
 	limitUploadRequest(ctx)
 
 	skuID := ctx.Param("id")
@@ -103,14 +112,14 @@ func (c *skuApi) Update(ctx *gin.Context) {
 		return
 	}
 
-	err := ctx.ShouldBind(&dtoSku)
+	upload, err := parseSkuUpload(ctx)
 	if err != nil {
 		fmt.Println("ERROR ON BIND SKU API: ", err.Error())
 		abortSkuUploadError(ctx, err)
 		return
 	}
 
-	err = service.SkuService.Update(skuID, *dtoSku)
+	err = service.SkuService.Update(skuID, *upload)
 	if err != nil {
 		fmt.Println("ERROR ON SERVICE SKU API: ", err.Error())
 		abortSkuUploadError(ctx, err)
@@ -118,6 +127,63 @@ func (c *skuApi) Update(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{})
+}
+
+func parseSkuUpload(ctx *gin.Context) (*dto.SkuUpload, error) {
+	if err := ctx.Request.ParseMultipartForm(service.MaxUploadRequestBytes); err != nil {
+		return nil, err
+	}
+
+	productHeader, err := ctx.FormFile("product")
+	if err != nil {
+		if errors.Is(err, http.ErrMissingFile) {
+			return nil, errSkuProductPartRequired
+		}
+		return nil, err
+	}
+	mediaType, _, err := mime.ParseMediaType(productHeader.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		return nil, errSkuProductMediaType
+	}
+	if productHeader.Size > maxSkuProductJSONBytes {
+		return nil, errSkuProductPartTooLarge
+	}
+	productFile, err := productHeader.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer productFile.Close()
+
+	decoder := json.NewDecoder(io.LimitReader(productFile, maxSkuProductJSONBytes+1))
+	decoder.DisallowUnknownFields()
+	var product dto.SkuProductRequest
+	if err := decoder.Decode(&product); err != nil {
+		return nil, err
+	}
+	if err := ensureJSONEOF(decoder); err != nil {
+		return nil, err
+	}
+	if err := product.Validate(); err != nil {
+		return nil, err
+	}
+
+	file, err := ctx.FormFile("file")
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
+		return nil, err
+	}
+	return &dto.SkuUpload{Product: product, File: file}, nil
+}
+
+func ensureJSONEOF(decoder *json.Decoder) error {
+	var trailing interface{}
+	err := decoder.Decode(&trailing)
+	if errors.Is(err, io.EOF) {
+		return nil
+	}
+	if err == nil {
+		return errors.New("product must contain exactly one JSON object")
+	}
+	return err
 }
 
 func limitUploadRequest(ctx *gin.Context) {
@@ -132,7 +198,16 @@ func abortSkuUploadError(ctx *gin.Context, err error) {
 		ctx.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{"erro": "Tipo de imagem nao permitido"})
 	case errors.Is(err, service.ErrUploadEmptyFile):
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"erro": "Imagem vazia"})
+	case errors.Is(err, errSkuProductMediaType):
+		ctx.AbortWithStatusJSON(http.StatusUnsupportedMediaType, gin.H{"erro": err.Error()})
+	case errors.Is(err, errSkuProductPartTooLarge):
+		ctx.AbortWithStatusJSON(http.StatusRequestEntityTooLarge, gin.H{"erro": err.Error()})
+	case errors.Is(err, dto.ErrMoneyMustBeNumber), errors.Is(err, dto.ErrMoneyTooManyDecimals),
+		errors.Is(err, dto.ErrMoneyOutOfRange), errors.Is(err, dto.ErrSkuNameRequired),
+		errors.Is(err, dto.ErrSkuPurchasePriceRequired), errors.Is(err, dto.ErrSkuSalePriceRequired),
+		errors.Is(err, dto.ErrSkuPurchasePriceNegative), errors.Is(err, dto.ErrSkuSalePriceNotPositive):
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"erro": err.Error()})
 	default:
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"erro": err.Error()})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"erro": "Requisicao de produto invalida"})
 	}
 }

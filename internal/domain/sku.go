@@ -1,16 +1,22 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type Sku struct {
-	ID          int64      `json:"id"              gorm:"primaryKey;autoIncrement;not null"`
-	DateCreated time.Time  `json:"dateCreated"     gorm:"not null;default:current_timestamp"`
-	LastUpdated time.Time  `json:"lastUpdated"     gorm:"not null;default:current_timestamp"`
-	Name        string     `json:"name"            gorm:"not null"`
-	Price       float64    `json:"price"           gorm:"not null"`
-	Active      bool       `json:"active"          gorm:"not null;default:true"`
-	ImageUrl    *string    `json:"image_url"       gorm:""`
-	OrderSkus   []OrderSku `json:"orderSkus"       gorm:"foreignKey:SkuID"` // Relacionamento has-many com OrderSku
+	ID            int64            `json:"id"              gorm:"primaryKey;autoIncrement;not null"`
+	DateCreated   time.Time        `json:"dateCreated"     gorm:"not null;default:current_timestamp"`
+	LastUpdated   time.Time        `json:"lastUpdated"     gorm:"not null;default:current_timestamp"`
+	Name          string           `json:"name"            gorm:"not null"`
+	Price         float64          `json:"-"               gorm:"not null"` // Legacy expansion column; sale_price is canonical.
+	PurchasePrice *decimal.Decimal `json:"-"        gorm:"type:numeric(14,2)"`
+	SalePrice     decimal.Decimal  `json:"-"           gorm:"type:numeric(14,2);not null"`
+	Active        bool             `json:"active"          gorm:"not null;default:true"`
+	ImageUrl      *string          `json:"image_url"       gorm:""`
+	OrderSkus     []OrderSku       `json:"orderSkus"       gorm:"foreignKey:SkuID"` // Relacionamento has-many com OrderSku
 }
 
 // TableName retorna o nome da tabela para o GORM

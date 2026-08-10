@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/api-control/internal/domain"
+	"github.com/shopspring/decimal"
 )
 
 func TestParseOrderSkuRequestRejectsEmptyProducts(t *testing.T) {
@@ -55,9 +56,9 @@ func TestParseOrderItemToDTOUsesHistoricalLineSnapshot(t *testing.T) {
 		ID:       11,
 		SkuID:    7,
 		Name:     "Historical name",
-		Price:    30,
+		Price:    decimal.NewFromInt(30),
 		Quantity: 3,
-		Sku:      domain.Sku{ID: 7, Name: "Current name", Price: 99},
+		Sku:      domain.Sku{ID: 7, Name: "Current name", SalePrice: decimal.NewFromInt(99)},
 	})
 
 	if result.ID != 11 || result.SkuID != 7 {
@@ -69,8 +70,8 @@ func TestParseOrderItemToDTOUsesHistoricalLineSnapshot(t *testing.T) {
 	if result.Quantity != 3 {
 		t.Fatalf("Quantity = %d, want 3", result.Quantity)
 	}
-	if result.UnitPrice == "" || result.LineTotal == "" {
-		t.Fatalf("prices must be formatted, got unit=%q total=%q", result.UnitPrice, result.LineTotal)
+	if !result.UnitPrice.Decimal().Equal(decimal.NewFromInt(10)) || !result.LineTotal.Decimal().Equal(decimal.NewFromInt(30)) {
+		t.Fatalf("prices = unit %s total %s, want 10 and 30", result.UnitPrice.Decimal(), result.LineTotal.Decimal())
 	}
 	if result.Sku.Name != "Current name" {
 		t.Fatalf("Sku.Name = %q, want Current name", result.Sku.Name)

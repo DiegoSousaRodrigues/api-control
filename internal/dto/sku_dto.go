@@ -1,46 +1,93 @@
 package dto
 
 import (
+	"errors"
 	"mime/multipart"
 
 	"github.com/api-control/internal/domain"
-	"github.com/api-control/internal/utils"
 )
 
 type (
+	SkuProductRequest struct {
+		Name          string `json:"name"`
+		PurchasePrice *Money `json:"purchasePrice"`
+		SalePrice     *Money `json:"salePrice"`
+	}
+
 	SkuDTO struct {
-		ID       int64                 `form:"id" json:"id"`
-		Name     string                `form:"name" json:"name" binding:"required"`
-		Price    string                `form:"price" json:"price" binding:"required"`
-		File     *multipart.FileHeader `form:"file"`
-		Active   bool                  `form:"active" json:"active" gorm:"not null;default:true"`
-		ImageUrl *string               `form:"imageUrl" json:"imageUrl,omitempty"`
+		ID            int64   `json:"id"`
+		Name          string  `json:"name"`
+		PurchasePrice *Money  `json:"purchasePrice"`
+		SalePrice     Money   `json:"salePrice"`
+		Active        bool    `json:"active"`
+		ImageUrl      *string `json:"imageUrl,omitempty"`
 	}
 )
 
+var (
+	ErrSkuNameRequired          = errors.New("sku name is required")
+	ErrSkuPurchasePriceRequired = errors.New("sku purchase price is required")
+	ErrSkuSalePriceRequired     = errors.New("sku sale price is required")
+	ErrSkuPurchasePriceNegative = errors.New("sku purchase price cannot be negative")
+	ErrSkuSalePriceNotPositive  = errors.New("sku sale price must be greater than zero")
+)
+
+func (request SkuProductRequest) Validate() error {
+	if request.Name == "" {
+		return ErrSkuNameRequired
+	}
+	if request.PurchasePrice == nil {
+		return ErrSkuPurchasePriceRequired
+	}
+	if request.SalePrice == nil {
+		return ErrSkuSalePriceRequired
+	}
+	if request.PurchasePrice.Decimal().IsNegative() {
+		return ErrSkuPurchasePriceNegative
+	}
+	if !request.SalePrice.Decimal().IsPositive() {
+		return ErrSkuSalePriceNotPositive
+	}
+	return nil
+}
+
 func ParseSkuToDTO(entity domain.Sku) SkuDTO {
-	price := utils.Float64ToCurrency(entity.Price)
+	var purchasePrice *Money
+	if entity.PurchasePrice != nil {
+		value := NewMoney(*entity.PurchasePrice)
+		purchasePrice = &value
+	}
 
 	return SkuDTO{
-		ID:       entity.ID,
-		Name:     entity.Name,
-		Price:    price,
-		Active:   entity.Active,
-		ImageUrl: entity.ImageUrl,
+		ID:            entity.ID,
+		Name:          entity.Name,
+		PurchasePrice: purchasePrice,
+		SalePrice:     NewMoney(entity.SalePrice),
+		Active:        entity.Active,
+		ImageUrl:      entity.ImageUrl,
 	}
 }
 
-func ParseSkuRequestToEntity(dto SkuDTO, imageUrl *string) (*domain.Sku, error) {
-	price, err := utils.CurrencyToFloat64(dto.Price)
-
-	if err != nil {
+func ParseSkuRequestToEntity(request SkuProductRequest, imageUrl *string) (*domain.Sku, error) {
+	if err := request.Validate(); err != nil {
 		return nil, err
 	}
+	purchasePrice := request.PurchasePrice.Decimal()
+	salePrice := request.SalePrice.Decimal()
+	legacyPrice, _ := salePrice.Float64()
 
 	return &domain.Sku{
-		Name:     dto.Name,
-		Price:    price,
-		Active:   dto.Active,
-		ImageUrl: imageUrl,
+		Name:          request.Name,
+		Price:         legacyPrice,
+		PurchasePrice: &purchasePrice,
+		SalePrice:     salePrice,
+		ImageUrl:      imageUrl,
 	}, nil
+}
+
+// Kept here because the multipart boundary belongs to the HTTP request, not
+// to the JSON product contract.
+type SkuUpload struct {
+	Product SkuProductRequest
+	File    *multipart.FileHeader
 }
