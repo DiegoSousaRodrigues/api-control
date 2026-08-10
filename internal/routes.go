@@ -57,5 +57,10 @@ func (r *routes) setupRouter() *gin.Engine {
 		groupOrder.PUT("/:id", api.OrderApi.Update)
 	}
 
+	groupReport := router.Group("report", utils.JWTAuthMiddleware())
+	{
+		groupReport.GET("/client-balance", api.ReportApi.ClientBalance)
+	}
+
 	return router
 }

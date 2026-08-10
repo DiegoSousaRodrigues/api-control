@@ -36,3 +36,24 @@ func TestOrderOpenBalanceRouteIsRegistered(t *testing.T) {
 	}
 	t.Fatal("GET /order/open-balance route is not registered")
 }
+
+func TestClientBalanceReportRouteIsRegisteredBehindJWT(t *testing.T) {
+	router := (&routes{}).setupRouter()
+	found := false
+	for _, route := range router.Routes() {
+		if route.Method == http.MethodGet && route.Path == "/report/client-balance" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("GET /report/client-balance route is not registered")
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/report/client-balance?clientId=1", nil)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated report status = %d, want 401", response.Code)
+	}
+}
