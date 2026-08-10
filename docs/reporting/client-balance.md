@@ -50,7 +50,7 @@ If any item in an aggregate has no reliable purchase snapshot:
 
 A known partial purchase subtotal must never be presented as the complete purchase total.
 
-## Planned endpoint
+## Implemented endpoint
 
 ```http
 GET /report/client-balance?clientId=42
@@ -102,6 +102,15 @@ Money values are JSON numbers, never localized strings. Months are ordered by de
 - `500`: sanitized internal failure.
 
 Inactive clients remain queryable for historical reporting.
+
+## Implementation
+
+- Migration `000003_order_item_cost_snapshots` adds the versioned purchase and sale snapshots without fabricating legacy costs.
+- Order creation writes snapshot version 1 in the same transaction as the order, items and account ledger entries.
+- `GET /report/client-balance` is protected by the existing JWT middleware and is available to every authenticated user under the approved access rule.
+- The repository aggregates directly from `order` and `order_sku`; it does not join the current SKU price or `client_account_entry`.
+- The Next.js BFF exposes `GET /api/report/client-balance?clientId=` and the protected UI is available at `/report/client-balance`.
+- The UI uses the server aggregates as authoritative values, keeps `clientId` in the URL and renders a table on desktop and monthly cards on small screens.
 
 ## Invariants
 
