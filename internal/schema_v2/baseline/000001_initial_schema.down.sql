@@ -1,0 +1,8 @@
+DROP TABLE IF EXISTS payment_allocations;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS invoice_items;
+DROP TABLE IF EXISTS invoices;
+DROP TABLE IF EXISTS billing_periods;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS clients;
+DROP TABLE IF EXISTS users;
