@@ -55,6 +55,16 @@ type transactionRepository struct {
 	db *gorm.DB
 }
 
+// NewTransactionRepository binds the account projection/allocation repository
+// to an existing financial transaction. Callers must already hold the client
+// row lock for the whole callback.
+func NewTransactionRepository(tx *gorm.DB) (AccountRepository, error) {
+	if tx == nil {
+		return nil, errors.New("account v2 transaction is required")
+	}
+	return &transactionRepository{db: tx}, nil
+}
+
 func (repository *transactionRepository) Position(ctx context.Context, clientID int64) (Position, error) {
 	var row struct {
 		NetBalance decimal.Decimal
