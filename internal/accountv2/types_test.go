@@ -1,6 +1,7 @@
 package accountv2
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/shopspring/decimal"
@@ -26,6 +27,21 @@ func TestNewPositionClassifiesBalance(t *testing.T) {
 				t.Fatalf("position = %#v", position)
 			}
 		})
+	}
+}
+
+func TestJSONAmountEmitsNumberAndRejectsSubCentInternalValue(t *testing.T) {
+	amount := NewJSONAmount(decimal.RequireFromString("10.52"))
+	encoded, err := json.Marshal(amount)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(encoded) != "10.52" {
+		t.Fatalf("encoded amount = %s", encoded)
+	}
+	invalid := NewJSONAmount(decimal.RequireFromString("10.521"))
+	if _, err := json.Marshal(invalid); err == nil {
+		t.Fatal("sub-cent internal value must not cross the JSON boundary")
 	}
 }
 

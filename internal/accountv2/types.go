@@ -1,11 +1,51 @@
 package accountv2
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/shopspring/decimal"
 )
+
+var maxJSONAmount = decimal.RequireFromString("9999999999999.99")
+
+// JSONAmount is the HTTP boundary for NUMERIC(15,2). It always emits a JSON
+// number and rejects strings, exponent notation and sub-cent precision.
+type JSONAmount decimal.Decimal
+
+func NewJSONAmount(value decimal.Decimal) JSONAmount { return JSONAmount(value.Copy()) }
+
+func (amount JSONAmount) Decimal() decimal.Decimal { return decimal.Decimal(amount) }
+
+func (amount JSONAmount) MarshalJSON() ([]byte, error) {
+	value := amount.Decimal()
+	if value.Exponent() < -2 || value.Abs().GreaterThan(maxJSONAmount) {
+		return nil, errors.New("amount is outside NUMERIC(15,2) range")
+	}
+	return []byte(value.StringFixed(2)), nil
+}
+
+func (amount *JSONAmount) UnmarshalJSON(data []byte) error {
+	data = bytes.TrimSpace(data)
+	if len(data) == 0 || bytes.Equal(data, []byte("null")) || data[0] == '"' || bytes.ContainsAny(data, "eE") {
+		return errors.New("amount must be a JSON number")
+	}
+	var number json.Number
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	if err := decoder.Decode(&number); err != nil {
+		return fmt.Errorf("amount must be a JSON number: %w", err)
+	}
+	value, err := decimal.NewFromString(number.String())
+	if err != nil || value.Exponent() < -2 || value.Abs().GreaterThan(maxJSONAmount) {
+		return errors.New("amount is outside NUMERIC(15,2) range")
+	}
+	*amount = NewJSONAmount(value)
+	return nil
+}
 
 const (
 	PositionDebt    = "debt"
